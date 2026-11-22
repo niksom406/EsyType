@@ -27,7 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         let launchEvent = NSAppleEventManager.shared().currentAppleEvent
         let atLogin = launchEvent?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
         UserDefaults.standard.register(defaults: [
-            Appearance.defaultsKey: Appearance.dark.rawValue,
+            Appearance.defaultsKey: Appearance.system.rawValue,
             OverlayController.hideFromCaptureKey: true,
         ])
         Appearance.apply()

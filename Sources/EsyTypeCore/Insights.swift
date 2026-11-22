@@ -95,6 +95,36 @@ public struct InsightsLog: Equatable, Sendable {
             .sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0.rawValue < $1.0.rawValue }
     }
 
+    /// Words per day for the `count` days ending on `end` (oldest first), 0 for days without dictation.
+    public func wordsPerDay(count: Int, endingOn end: Date = Date(), calendar: Calendar = .current) -> [(date: Date, words: Int)] {
+        let words = Dictionary(days.map { ($0.day, $0.words) }, uniquingKeysWith: +)
+        return (0..<count).reversed().compactMap { back in
+            calendar.date(byAdding: .day, value: -back, to: end).map { ($0, words[Self.dayKey($0, calendar: calendar)] ?? 0) }
+        }
+    }
+
+    /// Heatmap shade 0...4: 0 for no words, then quarters of the busiest day.
+    public static func heatLevel(words: Int, busiest: Int) -> Int {
+        guard words > 0, busiest > 0 else { return 0 }
+        return min(4, max(1, Int((Double(words) / Double(busiest) * 4).rounded(.up))))
+    }
+
+    /// Days in a row with at least one dictation, ending today (or yesterday, so the streak survives until
+    /// today's first dictation).
+    public func streak(now: Date = Date(), calendar: Calendar = .current) -> Int {
+        let active = Set(days.filter { $0.dictations > 0 }.map(\.day))
+        var day = now
+        if !active.contains(Self.dayKey(day, calendar: calendar)) {
+            day = calendar.date(byAdding: .day, value: -1, to: day)!
+        }
+        var count = 0
+        while active.contains(Self.dayKey(day, calendar: calendar)) {
+            count += 1
+            day = calendar.date(byAdding: .day, value: -1, to: day)!
+        }
+        return count
+    }
+
     private func selected(lastDays: Int?, now: Date, calendar: Calendar) -> [DayTotal] {
         guard let lastDays, let start = calendar.date(byAdding: .day, value: -(lastDays - 1), to: now) else { return days }
         let first = Self.dayKey(start, calendar: calendar)

@@ -5,6 +5,9 @@ All notable changes to EsyType are documented here. Format: Keep a Changelog. Ve
 ## [Unreleased]
 
 ### Added
+- 2026-11-22, Phase 6: Insights redesigned as in the Windows design — four figure tiles, an 18-week activity heatmap with streak / busiest day / daily average, this week by day, and app kinds; both themes.
+- 2026-11-22, Phase 6: new Dictation home ("Welcome back", animated waveform hero, total words / wpm / day streak, recent dictations by day); frosted-glass window and cards; bigger, freely resizable window; EsyType now always shows in the Dock while running.
+- 2026-11-22, Phase 6 design: the look now matches the Windows design in light and dark — Georgia italic headings, system text font, purple accent, Windows-style sidebar and cards, glass pill that follows the theme. Appearance defaults to Follow Mac, with Dark and Light in Settings ▸ General.
 - 2026-11-22, Phase 6: matches the Windows design — new sidebar (Dictation, EsyMeet "Soon", Insights; Your words: History, Dictionary, Snippets, Style, Scratchpad; Settings), Dictation home with this week's figures and the last dictation, "Typed into ‹app›" pill with Undo for 60 s, Insights (numbers only), Scratchpad, onboarding "About you" and "Appearance", Settings ▸ Models.
 - 2026-11-22, Stage 5: **double-tap** the push-to-talk key for hands-free (and again to stop); **Undo Last Dictation** (⌃⌘Z or menu) that removes only the untouched dictated text, never sending ⌘Z; quitting mid-recording releases the microphone.
 - 2026-11-22, Stage 4: **Text Cleanup** screen (sidebar ▸ Personalisation): switchable rules for filler words, repeated words, repeated phrases, punctuation and spacing, and sentence capitals, with a live preview. Links, emails, code, numbers and abbreviations are never changed. The filler switch moved here from Settings ▸ Speech.

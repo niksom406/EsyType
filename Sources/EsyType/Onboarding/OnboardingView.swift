@@ -10,7 +10,7 @@ struct OnboardingView: View {
     @State var step = Step.welcome
     @AppStorage(Pref.userName) private var userName = ""
     @AppStorage(Pref.meetingName) private var meetingName = ""
-    @AppStorage(Appearance.defaultsKey) private var appearance = Appearance.dark
+    @AppStorage(Appearance.defaultsKey) private var appearance = Appearance.system
     private let mac = HardwareDetector.current()
 
     var body: some View {

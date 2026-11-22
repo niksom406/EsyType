@@ -28,7 +28,6 @@ final class WindowController {
         let window = windows[kind] ?? make(kind)
         windows[kind] = window
         if !window.isVisible { window.center() }
-        NSApp.setActivationPolicy(.regular) // Dock icon and menu bar while a window is open
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
     }
@@ -38,11 +37,11 @@ final class WindowController {
         switch kind {
         case .main:
             window = hosting(MainWindowView(models: models, history: history, dictionary: dictionary, snippets: snippets, insights: insights, permissions: permissions, openSettings: { [weak self] in self?.show(.settings) }),
-                             title: "EsyType", size: NSSize(width: 820, height: 560))
+                             title: "EsyType", size: NSSize(width: 1120, height: 740), minSize: NSSize(width: 860, height: 600))
             window.styleMask.insert(.resizable)
             window.styleMask.insert(.fullSizeContentView)
             window.titlebarAppearsTransparent = true
-            window.minSize = NSSize(width: 680, height: 460)
+            window.minSize = NSSize(width: 860, height: 600)
         case .onboarding:
             window = hosting(OnboardingView(permissions: permissions, models: models, onFinish: { [weak self] in
                 UserDefaults.standard.set(true, forKey: AppDelegate.onboardingDoneKey)
@@ -58,23 +57,19 @@ final class WindowController {
             window.toolbarStyle = .preference
         }
         window.isReleasedWhenClosed = false
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.hideDockIconIfNoWindows() } // runs after the window has closed
-        }
         return window
     }
 
-    /// Back to a menu-bar-only app once the last window closes.
-    private func hideDockIconIfNoWindows() {
-        if !windows.values.contains(where: \.isVisible) { NSApp.setActivationPolicy(.accessory) }
-    }
 
-    private func hosting(_ view: some View, title: String, size: NSSize) -> NSWindow {
+    /// `minSize` is how small the window may get (default: the opening size); it can always grow.
+    private func hosting(_ view: some View, title: String, size: NSSize, minSize: NSSize? = nil) -> NSWindow {
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size),
                               styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
         window.title = title
-        window.contentView = NSHostingView(rootView: view.frame(minWidth: size.width, minHeight: size.height)
-            .background(Brand.canvas))
+        let minimum = minSize ?? size
+        window.contentView = NSHostingView(rootView: view
+            .frame(minWidth: minimum.width, maxWidth: .infinity, minHeight: minimum.height, maxHeight: .infinity)
+            .background(WindowBackground()))
         return window
     }
 }

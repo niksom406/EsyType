@@ -11,7 +11,6 @@ struct OverlayView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .environment(\.colorScheme, .dark) // the pill is always the dark brand capsule, over any content
     }
 
     private var pill: some View {
@@ -20,24 +19,30 @@ struct OverlayView: View {
             content
             if model.phase == .handsFree {
                 CircleButton(label: "Stop and insert", action: model.onStop) {
-                    RoundedRectangle(cornerRadius: 2).fill(.black).frame(width: 9, height: 9)
+                    RoundedRectangle(cornerRadius: 2).fill(Brand.recording).frame(width: 9, height: 9)
                 }
-                .background(.white, in: Circle())
+                .background(Brand.glass, in: Circle())
+                .overlay(Circle().stroke(Brand.glassEdge))
             }
             if let cancelLabel {
                 CircleButton(label: cancelLabel, action: model.onCancel) {
                     Image(systemName: "xmark").font(.system(size: 11, weight: .semibold))
                 }
-                .background(.white.opacity(0.12), in: Circle())
+                .background(Brand.glass, in: Circle())
+                .overlay(Circle().stroke(Brand.glassEdge))
             }
         }
         .font(.esy(13, .medium))
-        .foregroundStyle(.white)
+        .foregroundStyle(Brand.ink)
         .padding(.leading, 16)
         .padding(.trailing, cancelLabel == nil ? 18 : 8)
         .frame(height: 44)
-        .esyGlass(in: Capsule(), tint: .black.opacity(0.35))
-        .shadow(color: .black.opacity(0.45), radius: 20, y: 10)
+        // The Windows "glass capsule": translucent tint, a bright edge and a soft top sheen.
+        .background(.ultraThinMaterial, in: Capsule())
+        .background(Brand.glass, in: Capsule())
+        .overlay(Capsule().stroke(Brand.glassEdge))
+        .overlay(Capsule().fill(LinearGradient(colors: [.white.opacity(0.18), .clear], startPoint: .top, endPoint: .center)).allowsHitTesting(false))
+        .shadow(color: .black.opacity(0.28), radius: 20, y: 10)
         .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85), value: model.phase)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("EsyType")
@@ -50,9 +55,9 @@ struct OverlayView: View {
             if let notice = model.notice {
                 Text(notice).font(.esy(12, .semibold)).foregroundStyle(Brand.warning)
             } else if model.phase == .handsFree {
-                Text("Hands-free").font(.esy(12)).foregroundStyle(.white.opacity(0.7))
+                Text("Hands-free").font(.esy(12)).foregroundStyle(Brand.inkSecondary)
             }
-            Text(timer).font(.system(size: 13, weight: .medium, design: .monospaced))
+            Text(timer).font(.esyMono(12)).foregroundStyle(Brand.inkSecondary)
                 .accessibilityLabel("Recording time \(timer)")
         case .transcribing:
             TranscribingBars(paused: reduceMotion)
@@ -60,7 +65,8 @@ struct OverlayView: View {
         case .typed(let app):
             Text("Typed into \(app)").lineLimit(1)
             Button("Undo", action: model.onUndo)
-                .buttonStyle(.plain).font(.esy(13, .semibold)).foregroundStyle(Brand.warning)
+                .buttonStyle(.plain).font(.esy(13, .semibold)).foregroundStyle(Brand.canvas)
+                .padding(.horizontal, 14).frame(height: 32).background(Brand.ink, in: Capsule())
                 .accessibilityHint("Removes the text EsyType just typed")
         case .undone:
             Text("Dictation undone")
@@ -76,7 +82,7 @@ struct OverlayView: View {
     private var dotColor: Color {
         switch model.phase {
         case .listening, .handsFree: Brand.recording
-        case .transcribing: .white
+        case .transcribing: Brand.inkSecondary
         case .typed, .undone: Brand.success
         case .copied, .error: Brand.warning
         }
@@ -105,7 +111,7 @@ private struct TranscribingBars: View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: paused)) { context in
             let sweep = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.4) / 1.4
             LevelBars(levels: (0..<28).map { i in Float(0.18 + 0.4 * max(0, 1 - abs(Double(i) / 27 - sweep) * 5)) },
-                      fill: AnyShapeStyle(Color.white.opacity(0.55)))
+                      fill: AnyShapeStyle(Brand.inkTertiary))
         }
     }
 }

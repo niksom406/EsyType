@@ -34,7 +34,7 @@ enum SettingsTabs {
 }
 
 private struct GeneralTab: View {
-    @AppStorage(Appearance.defaultsKey) private var appearance = Appearance.dark
+    @AppStorage(Appearance.defaultsKey) private var appearance = Appearance.system
     @AppStorage(OverlayController.hideFromCaptureKey) private var hideFromCapture = true
     @State private var openAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
@@ -46,6 +46,7 @@ private struct GeneralTab: View {
             Picker("Appearance", selection: $appearance) {
                 ForEach(Appearance.allCases) { Text($0.title).tag($0) }
             }
+            .pickerStyle(.segmented)
             .onChange(of: appearance) { Appearance.apply() }
             Toggle("Hide recording overlay from screen sharing", isOn: $hideFromCapture)
             Section {

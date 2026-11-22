@@ -20,7 +20,7 @@ Statuses: **PASS** (real app on this Mac), **PASS (Simulated)** (unit test), **P
 | Insights: words since, wpm, time saved (40 wpm, how?), meetings; This week by category | Same. Meetings shows "—" until EsyMeet. The typing speed is adjustable. |
 | Style, Scratchpad | Style = the Stage 4 cleanup rules; Scratchpad = a page saved on this Mac |
 | Onboarding step 3 "About you", step 4 "Appearance" (Follow / Dark / Light) | Same (steps 3 and 4 of 9) |
-| Georgia italic, Mica/Acrylic, Ctrl shortcuts | Not copied. The Mac keeps Instrument Serif (the designed font, bundled here) and native macOS materials and shortcuts. |
+| Georgia italic headings, Segoe UI text, purple accent, light and dark palettes, glass pill | **Matched** (follow-up the same day): Georgia italic, the system sans (the Mac counterpart of Segoe UI), the same colour tokens in both themes, the glass capsule pill. Mica/Acrylic and Ctrl shortcuts become their macOS equivalents. |
 | EsyMeet (prompt, live transcript, history, Copy for AI) | **Not built.** Next phase. |
 
 ## Results
@@ -39,6 +39,31 @@ Statuses: **PASS** (real app on this Mac), **PASS (Simulated)** (unit test), **P
 | Insights maths and categories | PASS (Simulated) | 4 tests: totals, wpm, time saved (117 s worked example), shares, empty data, never negative, store |
 | Regression: push-to-talk + cleanup + dictionary + snippet | PASS | "We need to send Project FALCON-9 Best regards,⏎EsyType Test Signature⏎नमस्ते from the test." |
 | Privacy check / crashes | PASS | 6/6; none new |
+
+## Visual design (follow-up)
+
+Rendered in both themes: `screenshots/phase6/dictation-home-light.png`, `dictation-home-dark.png`, `pill-typed-undo-light.png`, `pill-recording-dark.png`. After installing: the real sidebar was read through Accessibility, and a real dictation typed into TextEdit with the pill showing "Typed into TextEdit · Undo". Appearance: Follow Mac / Dark / Light in Settings ▸ General (segmented). Your Mac is set to Dark, the value you chose before; the new default only applies when nothing is chosen.
+
+## Dictation home, glass, window and Dock (second follow-up)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Dictation home | PASS (render, both themes) | "Welcome back", dark hero with the looping waveform beside the text, numbers card (0 shown as a clear zero), Today list; `dictation-home-light.png`, `-dark.png` |
+| Day streak | PASS (Simulated) | `dayStreakCountsConsecutiveDaysUpToToday` |
+| Window size | PASS | Opens 1120×740; enlarged to 1253×862 (screen limit); smallest 860×632 |
+| Dock | PASS | `lsappinfo`: Foreground with the window open **and** after ⌘W; no `LSUIElement` in the installed Info.plist |
+| Glass pill and typing | PASS | Real dictation into TextEdit; pill "Typed into TextEdit · Undo" |
+| Window glass | NOT verified on screen | Offscreen renders can't capture behind-window blur; please look at the real window |
+
+## Insights redesign (third follow-up)
+
+As in the Windows design: four tiles (big semibold figure, small-caps label, note), an **Activity** heatmap of the last 18 weeks (Monday-first, 5 purple shades from `--heat-0…4`, hover for a day's words) with current streak, busiest day and average per active day, and **This week** (day bars, today solid purple, days to come dashed) with the split by kind of app. Side by side when wide, stacked when narrow.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Layout, both themes | PASS (render, sample data) | `screenshots/phase6/insights-light.png`, `insights-dark.png` (throwaway sample days, never your numbers) |
+| Real page with your numbers | PASS | Accessibility: 64 words since 22 Nov, 106 wpm, Activity 1 day / busiest 64 words, This week Sunday 64, Documents 73 % |
+| Words per day, heat levels, streak | PASS (Simulated) | `wordsPerDayAndHeatLevels`, `dayStreakCountsConsecutiveDaysUpToToday` |
 
 ## Not tested and limitations
 

@@ -9,11 +9,8 @@ extension View {
         modifier(GlassModifier(shape: shape, tint: tint))
     }
 
-    func esyCard() -> some View {
-        padding(18)
-            .background(Brand.surface.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Brand.hairline))
-    }
+    /// The Windows card: panel colour, hairline edge, 16 pt corners, 18×20 padding.
+    func esyCard() -> some View { esyGlassCard() }
 }
 
 extension EnvironmentValues {
@@ -63,11 +60,11 @@ struct PrimaryButtonStyle: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.esy(14, .semibold))
-                .foregroundStyle(.black)
-                .padding(.horizontal, 22)
-                .frame(minHeight: 36)
-                .background(Brand.ctaGradient, in: Capsule())
+                .font(.esy(13, .medium))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .frame(minHeight: 34)
+                .background(Brand.accent, in: Capsule())
                 .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
                 .contentShape(Capsule())
         }
@@ -147,11 +144,12 @@ struct KeyCap: View {
 
     var body: some View {
         Text(label)
-            .font(.esy(13, .medium))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Brand.surfaceRaised, in: RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Brand.hairlineStrong))
+            .font(.esyMono(12, .semibold))
+            .foregroundStyle(Brand.ink)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(Brand.surfaceRaised, in: RoundedRectangle(cornerRadius: 7))
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Brand.hairlineStrong))
     }
 }
 
@@ -163,9 +161,9 @@ struct Eyebrow: View {
 
     var body: some View {
         Text(text.uppercased())
-            .font(.esy(11, .light, relativeTo: .caption))
-            .tracking(0.6)
-            .foregroundStyle(.secondary)
+            .font(.esy(10.5, .semibold, relativeTo: .caption))
+            .tracking(1.2)
+            .foregroundStyle(Brand.inkTertiary)
     }
 }
 
@@ -182,5 +180,94 @@ struct PreviewBadge: View {
             .foregroundStyle(Brand.warning)
             .overlay(Capsule().stroke(Brand.warning.opacity(0.6)))
             .accessibilityLabel(text == "Preview" ? "Preview, not real data" : text) // "Beta" and "Soon" read as themselves
+    }
+}
+
+// MARK: - Glass and motion
+
+/// macOS's behind-window blur, the Mac counterpart of Windows' Mica: the desktop shows softly through the window.
+struct WindowGlass: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .underWindowBackground
+        view.blendingMode = .behindWindow
+        view.state = .active
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+}
+
+/// A looping waveform in the brand gradient, like a speaking voice. Still when Reduce Motion is on.
+struct SpeakingWave: View {
+    var bars = 36
+    var barWidth: CGFloat = 4
+    var spacing: CGFloat = 4
+    var height: CGFloat = 120
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GeometryReader { geo in // as many bars as fit, so the wave fills its space at any window size
+            let count = max(8, min(bars * 3, Int((geo.size.width + spacing) / (barWidth + spacing))))
+            wave(count).frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(height: height)
+        .accessibilityHidden(true)
+    }
+
+    private func wave(_ bars: Int) -> some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
+            let t = reduceMotion ? 1.3 : context.date.timeIntervalSinceReferenceDate
+            HStack(alignment: .center, spacing: spacing) {
+                ForEach(0..<bars, id: \.self) { i in
+                    let x = Double(i) / Double(bars)
+                    // Syllable-sized ripples inside slower phrases, fading towards both ends.
+                    let phrase = 0.55 + 0.45 * sin(t * 1.1 + x * 5)
+                    let syllable = 0.5 + 0.5 * sin(t * 6.3 + x * 19)
+                    let envelope = sin(x * .pi)
+                    let level = max(0.08, envelope * (0.25 + 0.75 * phrase * syllable))
+                    Capsule()
+                        .fill(Brand.markGradient)
+                        .frame(width: barWidth, height: height * level)
+                }
+            }
+            .frame(height: height)
+        }
+    }
+}
+
+/// The window's background: frosted glass tinted with the theme colour, solid when Reduce Transparency is on.
+struct WindowBackground: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        if reduceTransparency {
+            Brand.canvas
+        } else {
+            ZStack { WindowGlass(); Brand.canvas.opacity(0.62) }
+        }
+    }
+}
+
+private struct GlassCard: ViewModifier {
+    let cornerRadius: CGFloat
+    let padded: Bool
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius)
+        content
+            .padding(.vertical, padded ? 18 : 0).padding(.horizontal, padded ? 20 : 0)
+            .background(reduceTransparency ? Brand.surface : Brand.glassStrong, in: shape)
+            .overlay(shape.stroke(reduceTransparency ? Brand.hairline : Brand.glassEdge))
+            .overlay(shape.stroke(Brand.hairline)) // keeps the edge visible on light glass
+            .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
+    }
+}
+
+extension View {
+    /// A Windows-style glass panel: translucent tint, bright edge, 16 pt corners.
+    func esyGlassCard(cornerRadius: CGFloat = 16, padded: Bool = true) -> some View {
+        modifier(GlassCard(cornerRadius: cornerRadius, padded: padded))
     }
 }

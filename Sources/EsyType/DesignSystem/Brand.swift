@@ -1,40 +1,69 @@
 import AppKit
 import SwiftUI
 
-/// EsyAI design tokens for EsyType. Source and status of each value: research/ESYAI_DESIGN_TOKENS.md.
+/// EsyType design tokens, matching the Windows "Next Generation" design (artifact 1LemoizD2hmuqncJKFsBBn, 2026-11-22):
+/// the same light and dark palettes, purple accent, Georgia italic for display and the system sans for text.
 enum Brand {
-    // Brand mark (sampled from the EsyAI favicon; awaiting official values).
-    static let markBlue = Color(hex: 0x2879AB)
-    static let markMid = Color(hex: 0x9A988F)
-    static let markAmber = Color(hex: 0xDBAE7E)
-    static let markGradient = LinearGradient(colors: [markBlue, markMid, markAmber], startPoint: .top, endPoint: .bottom)
+    // The waveform / mark gradient, bottom to top: blue → accent → amber.
+    static let markBlue = Color(hex: 0x27669A)
+    static let markMid = Color(light: 0x5A2FC2, dark: 0xA78BFA)
+    static let markAmber = Color(hex: 0xDFA164)
+    static let markGradient = LinearGradient(colors: [markAmber, markMid, markBlue], startPoint: .top, endPoint: .bottom)
 
-    // Neutrals: dark values are verified from esyai.co.uk; light values are a derived extension.
-    static let canvas = Color(light: 0xFAFAFA, dark: 0x050505)
-    static let surface = Color(light: 0xFFFFFF, dark: 0x0D0D0D)
-    static let surfaceRaised = Color(light: 0xF2F2F2, dark: 0x171717)
-    static let hairline = Color(light: 0xE5E5E5, dark: 0x262626)
-    static let hairlineStrong = Color(light: 0xD4D4D4, dark: 0x333333)
+    // Surfaces (Windows tokens: --win, --side, --panel, --panel-2).
+    static let canvas = Color(light: 0xFFFFFF, dark: 0x0B0B0C)
+    static let sidebar = Color(light: 0xF7F6FB, dark: 0x0E0E10)
+    static let surface = Color(light: 0xFFFFFF, dark: 0x141416)
+    static let surfaceRaised = Color(light: 0xF1EFF7, dark: 0x1B1B1F)
+    // Lines and text (--line, --line-2, --ink, --ink-3).
+    static let hairline = Color(light: 0x15121C, dark: 0xFFFFFF, lightAlpha: 0.11, darkAlpha: 0.10)
+    static let hairlineStrong = Color(light: 0x15121C, dark: 0xFFFFFF, lightAlpha: 0.22, darkAlpha: 0.22)
+    static let ink = Color(light: 0x15121C, dark: 0xFFFFFF)
+    static let inkSecondary = Color(light: 0x15121C, dark: 0xFFFFFF, lightAlpha: 0.74, darkAlpha: 0.76)
+    static let inkTertiary = Color(light: 0x15121C, dark: 0xFFFFFF, lightAlpha: 0.56, darkAlpha: 0.54)
 
-    // Meaning, not decoration: system colours adapt to light/dark and Increase Contrast.
-    static let recording = Color(nsColor: .systemRed)
-    // Used as text: darker in light mode for ≥ 4.5:1 contrast (system green/yellow are 2.1:1 and 1.4:1 on the canvas).
-    static let success = Color(light: 0x1E7B34, dark: 0x30D158)
-    static let warning = Color(light: 0x8A5A00, dark: 0xFFD60A)
+    // Accent (--accent, --accent-ink, --accent-soft).
+    static let accent = Color(light: 0x6B3FD4, dark: 0x8350E8)
+    static let accentInk = Color(light: 0x5A2FC2, dark: 0xA78BFA)
+    static let accentSoft = Color(light: 0x6B3FD4, dark: 0x8350E8, lightAlpha: 0.10, darkAlpha: 0.18)
 
-    static let ctaGradient = LinearGradient(colors: [Color(hex: 0xF3F4F6), Color(hex: 0xD1D5DB)], startPoint: .topLeading, endPoint: .bottomTrailing)
+    // Glass (--glass, --glass-strong, --glass-edge, --glass-hi).
+    static let glass = Color(light: 0xFFFFFF, dark: 0x16161C, lightAlpha: 0.52, darkAlpha: 0.50)
+    static let glassStrong = Color(light: 0xFFFFFF, dark: 0x14141A, lightAlpha: 0.72, darkAlpha: 0.70)
+    static let glassEdge = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightAlpha: 0.78, darkAlpha: 0.14)
+
+    // Activity heatmap shades (--heat-0 … --heat-4).
+    static let heat: [Color] = [Color(light: 0xE9E6F2, dark: 0x1D1D22), Color(light: 0xCFC2F3, dark: 0x2F2550),
+                                Color(light: 0xA98CE9, dark: 0x4B3488), Color(light: 0x7F56DD, dark: 0x6B45C8),
+                                Color(light: 0x5A2FC2, dark: 0xA78BFA)]
+
+    // Meaning (--ok, --warn, --rec). Text-safe contrast in both themes.
+    static let recording = Color(light: 0xDC2626, dark: 0xEF4444)
+    static let success = Color(light: 0x15803D, dark: 0x4ADE80)
+    static let warning = Color(light: 0xA16207, dark: 0xF2B04A)
 }
 
-/// Barlow for interface text, Instrument Serif Italic for display moments only.
+/// System sans for interface text (Windows uses Segoe UI), Georgia italic for display moments, and a monospaced
+/// face for keys and timers — as in the Windows design.
 extension Font {
     enum BarlowWeight: String { case light = "Light", regular = "Regular", medium = "Medium", semibold = "SemiBold" }
 
     static func esy(_ size: CGFloat, _ weight: BarlowWeight = .regular, relativeTo style: TextStyle = .body) -> Font {
-        .custom("Barlow-\(weight.rawValue)", size: size, relativeTo: style)
+        let w: Font.Weight = switch weight {
+        case .light: .light
+        case .regular: .regular
+        case .medium: .medium
+        case .semibold: .semibold
+        }
+        return .system(size: size, weight: w)
     }
 
     static func esyDisplay(_ size: CGFloat, relativeTo style: TextStyle = .largeTitle) -> Font {
-        .custom("InstrumentSerif-Italic", size: size, relativeTo: style)
+        .custom("Georgia-Italic", size: size, relativeTo: style)
+    }
+
+    static func esyMono(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        .system(size: size, weight: weight, design: .monospaced)
     }
 }
 
@@ -47,15 +76,15 @@ extension Color {
                   opacity: opacity)
     }
 
-    init(light: UInt32, dark: UInt32) {
+    init(light: UInt32, dark: UInt32, lightAlpha: Double = 1, darkAlpha: Double = 1) {
         self.init(nsColor: NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            return NSColor(Color(hex: isDark ? dark : light))
+            return NSColor(Color(hex: isDark ? dark : light, opacity: isDark ? darkAlpha : lightAlpha))
         })
     }
 }
 
-/// The app-wide appearance setting. Dark is the brand default.
+/// The app-wide appearance setting: Follow Mac (default, like Windows' Follow device), Dark or Light.
 enum Appearance: String, CaseIterable, Identifiable {
     case system, dark, light // the Windows order: Follow device, Dark, Light
     static let defaultsKey = "appearance"
@@ -63,7 +92,7 @@ enum Appearance: String, CaseIterable, Identifiable {
     var title: String { self == .system ? "Follow Mac" : rawValue.capitalized }
 
     @MainActor static func apply() {
-        let value = Appearance(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "") ?? .dark
+        let value = Appearance(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "") ?? .system
         NSApp.appearance = switch value {
         case .dark: NSAppearance(named: .darkAqua)
         case .light: NSAppearance(named: .aqua)

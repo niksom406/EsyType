@@ -13,7 +13,7 @@ enum Snapshots {
         guard let flag = args.firstIndex(of: "--render-snapshots"), flag + 1 < args.count else { return false }
         let folder = URL(fileURLWithPath: args[flag + 1])
         NSApplication.shared.setActivationPolicy(.prohibited)
-        NSApp.appearance = NSAppearance(named: .darkAqua)
+        NSApp.appearance = NSAppearance(named: ProcessInfo.processInfo.environment["ESYTYPE_SNAPSHOT_LIGHT"] == nil ? .darkAqua : .aqua)
         let fonts = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .appendingPathComponent("../../../Resources/Fonts").standardized
         for file in (try? FileManager.default.contentsOfDirectory(at: fonts, includingPropertiesForKeys: nil)) ?? []
@@ -39,10 +39,12 @@ enum Snapshots {
         let history = HistoryModel(url: historyURL)
         RunLoop.main.run(until: .now + 0.5) // let the first load finish
         render(HistoryView(history: history).padding(40), NSSize(width: 720, height: 560), "history", folder)
+        render(InsightsView(insights: sampleInsights(folder)).padding(40).background(Brand.canvas),
+               NSSize(width: 980, height: 760), "insights", folder)
         render(MainWindowView(models: models, history: history, dictionary: sampleDictionary(folder),
                               snippets: SnippetModel(store: SnippetStore(url: folder.appending(path: "snapshot-snippets.json"))),
                               insights: InsightsModel(store: InsightsStore(url: folder.appending(path: "snapshot-insights.json"))),
-                              permissions: permissions, openSettings: {}), NSSize(width: 820, height: 560), "main", folder)
+                              permissions: permissions, openSettings: {}), NSSize(width: 1120, height: 740), "main", folder)
         render(ModelsView(models: models).padding(40), NSSize(width: 720, height: 560), "models", folder)
         for step in OnboardingView.Step.allCases {
             render(OnboardingView(permissions: permissions, models: models, onFinish: {}, step: step),
@@ -88,6 +90,20 @@ enum Snapshots {
         let store = DictionaryStore(url: folder.appending(path: "snapshot-dictionary.json"))
         try? store.save(PersonalDictionary(DictionaryCSV.sampleEntries))
         return DictionaryModel(store: store)
+    }
+
+    /// Throwaway sample days (never the user's numbers) so the Insights layout can be reviewed.
+    private static func sampleInsights(_ folder: URL) -> InsightsModel {
+        let store = InsightsStore(url: folder.appending(path: "snapshot-insights-sample.json"))
+        var log = InsightsLog()
+        let apps = ["com.openai.chat", "com.apple.mail", "com.apple.TextEdit", "com.tinyspeck.slackmacgap"]
+        for back in stride(from: 120, through: 0, by: -1) where (back * 7) % 5 != 0 {
+            let date = Calendar.current.date(byAdding: .day, value: -back, to: Date())!
+            let words = 40 + (back * 37) % 260
+            log.record(words: words, spokenMs: words * 470, processingMs: 900, bundleID: apps[back % 4], at: date)
+        }
+        try? store.save(log)
+        return InsightsModel(store: store)
     }
 }
 #endif

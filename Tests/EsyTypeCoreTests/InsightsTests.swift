@@ -55,3 +55,26 @@ private func date(_ day: Int, _ hour: Int = 10) -> Date { utc.date(from: DateCom
     let json = try String(contentsOf: url, encoding: .utf8)
     #expect(!json.contains("com.apple.Notes")) // categories only, not which app
 }
+
+@Test func dayStreakCountsConsecutiveDaysUpToToday() {
+    var log = InsightsLog()
+    #expect(log.streak(now: date(22), calendar: utc) == 0)
+    for day in [18, 20, 21] { log.record(words: 1, spokenMs: 1, processingMs: 0, bundleID: nil, at: date(day), calendar: utc) }
+    #expect(log.streak(now: date(22), calendar: utc) == 2) // 20, 21; nothing yet today keeps the streak
+    log.record(words: 1, spokenMs: 1, processingMs: 0, bundleID: nil, at: date(22), calendar: utc)
+    #expect(log.streak(now: date(22), calendar: utc) == 3)
+    #expect(log.streak(now: date(24), calendar: utc) == 0) // a missed day ends it
+}
+
+@Test func wordsPerDayAndHeatLevels() {
+    var log = InsightsLog()
+    log.record(words: 40, spokenMs: 1, processingMs: 0, bundleID: nil, at: date(20), calendar: utc)
+    log.record(words: 10, spokenMs: 1, processingMs: 0, bundleID: nil, at: date(22), calendar: utc)
+    let days = log.wordsPerDay(count: 4, endingOn: date(22), calendar: utc)
+    #expect(days.map(\.words) == [0, 40, 0, 10]) // 19, 20, 21, 22
+    #expect(InsightsLog.heatLevel(words: 0, busiest: 40) == 0)
+    #expect(InsightsLog.heatLevel(words: 1, busiest: 40) == 1)
+    #expect(InsightsLog.heatLevel(words: 10, busiest: 40) == 1)
+    #expect(InsightsLog.heatLevel(words: 21, busiest: 40) == 3)
+    #expect(InsightsLog.heatLevel(words: 40, busiest: 40) == 4)
+}
