@@ -11,9 +11,12 @@ final class WindowController {
     private let history: HistoryModel
     private let dictionary: DictionaryModel
     private let snippets: SnippetModel
+    private let insights: InsightsModel
     private var windows: [Kind: NSWindow] = [:]
 
-    init(permissions: Permissions, models: ModelLibrary, history: HistoryModel, dictionary: DictionaryModel, snippets: SnippetModel) {
+    init(permissions: Permissions, models: ModelLibrary, history: HistoryModel, dictionary: DictionaryModel, snippets: SnippetModel,
+         insights: InsightsModel) {
+        self.insights = insights
         self.history = history
         self.dictionary = dictionary
         self.snippets = snippets
@@ -34,7 +37,7 @@ final class WindowController {
         let window: NSWindow
         switch kind {
         case .main:
-            window = hosting(MainWindowView(models: models, history: history, dictionary: dictionary, snippets: snippets, permissions: permissions, openSettings: { [weak self] in self?.show(.settings) }),
+            window = hosting(MainWindowView(models: models, history: history, dictionary: dictionary, snippets: snippets, insights: insights, permissions: permissions, openSettings: { [weak self] in self?.show(.settings) }),
                              title: "EsyType", size: NSSize(width: 820, height: 560))
             window.styleMask.insert(.resizable)
             window.styleMask.insert(.fullSizeContentView)

@@ -14,6 +14,7 @@ enum SettingsTabs {
             ("Shortcuts", "keyboard", AnyView(ShortcutsTab())),
             ("Recording", "mic", AnyView(RecordingTab())),
             ("Speech", "waveform", AnyView(SpeechTab(models: models))),
+            ("Models", "cpu", AnyView(ModelsView(models: models).padding(24))),
             ("History & Privacy", "lock.shield", AnyView(PrivacyTab(history: history))),
             ("Permissions", "checkmark.shield", AnyView(PermissionsTab(permissions: permissions))),
             ("About", "info.circle", AnyView(AboutTab())),
@@ -37,6 +38,8 @@ private struct GeneralTab: View {
     @AppStorage(OverlayController.hideFromCaptureKey) private var hideFromCapture = true
     @State private var openAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
+    @AppStorage(Pref.userName) private var userName = ""
+    @AppStorage(Pref.meetingName) private var meetingName = ""
 
     var body: some View {
         Form {
@@ -45,6 +48,13 @@ private struct GeneralTab: View {
             }
             .onChange(of: appearance) { Appearance.apply() }
             Toggle("Hide recording overlay from screen sharing", isOn: $hideFromCapture)
+            Section {
+                TextField("Your name", text: $userName, prompt: Text("Optional"))
+                TextField("Shown in meetings as", text: $meetingName, prompt: Text("You"))
+            } header: { Text("About you") } footer: {
+                Text("Labels your lines in meeting transcripts, in place of “You”. Not used to recognise your voice. Stored only on this Mac.")
+                    .font(.esy(12)).foregroundStyle(.secondary)
+            }
             Section {
                 Toggle("Open at login", isOn: $openAtLogin)
                     .onChange(of: openAtLogin) { _, on in

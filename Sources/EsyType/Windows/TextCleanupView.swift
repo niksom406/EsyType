@@ -18,7 +18,7 @@ struct TextCleanupView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Text Cleanup").font(.esyDisplay(40)).tracking(-1).accessibilityAddTraits(.isHeader)
+            Text("Style").font(.esyDisplay(40)).tracking(-1).accessibilityAddTraits(.isHeader)
             Text("Fixed rules tidy what Whisper writes before it’s typed. They remove noise and fix layout; they never reword what you said. Everything runs on this Mac.")
                 .font(.esy(14, .light)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Form {

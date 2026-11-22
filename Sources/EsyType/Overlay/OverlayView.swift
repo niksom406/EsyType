@@ -57,8 +57,11 @@ struct OverlayView: View {
         case .transcribing:
             TranscribingBars(paused: reduceMotion)
             Text("Transcribing…")
-        case .inserted:
-            Text("Inserted")
+        case .typed(let app):
+            Text("Typed into \(app)").lineLimit(1)
+            Button("Undo", action: model.onUndo)
+                .buttonStyle(.plain).font(.esy(13, .semibold)).foregroundStyle(Brand.warning)
+                .accessibilityHint("Removes the text EsyType just typed")
         case .undone:
             Text("Dictation undone")
         case .copied:
@@ -74,7 +77,7 @@ struct OverlayView: View {
         switch model.phase {
         case .listening, .handsFree: Brand.recording
         case .transcribing: .white
-        case .inserted, .undone: Brand.success
+        case .typed, .undone: Brand.success
         case .copied, .error: Brand.warning
         }
     }
@@ -83,7 +86,8 @@ struct OverlayView: View {
         switch model.phase {
         case .listening, .handsFree, .transcribing: "Cancel dictation"
         case .copied, .error: "Dismiss"
-        case .inserted, .undone: nil
+        case .undone: nil
+        case .typed: "Dismiss"
         }
     }
 

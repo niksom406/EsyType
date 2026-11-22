@@ -262,3 +262,7 @@ See `Documentation/STAGE_4_TEST_REPORT.md`. Unit (Simulated input): 8 cleanup te
 ## Stage 5: dictation controls and undo (2026-11-22)
 
 See `Documentation/STAGE_5_TEST_REPORT.md`. Unit (Simulated events): 4 new `DictationMachine` tests (double-tap start/stop, slow taps, setting off, repeated/mixed shortcuts, taps while transcribing); 101/101 pass. Real device (HID key events, `say` into the mic): push-to-talk, toggle, double-tap; live pill read through Accessibility; Esc; default-input switch mid-recording; undo in TextEdit ×3 and Notes; a real shortcut clash with a second process.
+
+## Phase 6: Windows design parity (2026-11-22)
+
+See `Documentation/PHASE_6_TEST_REPORT.md`. Unit (Simulated): 4 Insights tests; 105/105 pass. Real device: sidebar read through Accessibility; dictation into TextEdit → pill "Typed into TextEdit · Undo" → Undo button restored the document; Dictation home and Insights figures updated; `insights.json` numbers only; Scratchpad dictation saved (0600). Onboarding steps and pill by offscreen render.

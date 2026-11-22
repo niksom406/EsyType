@@ -12,6 +12,7 @@ final class DictationController {
     private let recorder = AudioRecorder()
     private let dictionary: DictionaryModel
     private let snippets: SnippetModel
+    private let insights: InsightsModel
     private let overlay: OverlayController
     private let models: ModelLibrary
     private let history: HistoryModel
@@ -41,15 +42,17 @@ final class DictationController {
     private static let log = Logger(subsystem: "co.uk.esyai.esytype", category: "dictation")
 
     init(overlay: OverlayController, models: ModelLibrary, history: HistoryModel, dictionary: DictionaryModel,
-         snippets: SnippetModel) {
+         snippets: SnippetModel, insights: InsightsModel) {
         self.dictionary = dictionary
         self.snippets = snippets
+        self.insights = insights
         self.overlay = overlay
         self.models = models
         self.history = history
         hotkeys.onEvent = { [weak self] in self?.handle($0) }
         hotkeys.onPasteLast = { [weak self] in self?.pasteLast() }
         hotkeys.onUndo = { [weak self] in self?.undoLast() }
+        overlay.onUndo = { [weak self] in self?.undoLast() }
         hotkeys.onConflict = { [weak overlay] message in
             Self.log.error("Shortcut not registered: \(message, privacy: .public)")
             overlay?.finish(.error(message))
@@ -259,9 +262,14 @@ final class DictationController {
                 history.save(text, language: result.language, durationMs: samples.count / 16,
                              modelID: model.id, appBundleID: app)
                 endSession() // Esc can't interrupt the paste and clipboard restore below
+                let appName = target.flatMap { NSRunningApplication(processIdentifier: $0)?.localizedName } ?? "your app"
+                insights.record(.init(app: appName, spokenSeconds: Double(samples.count) / AudioRecorder.sampleRate,
+                                      typingSeconds: (ContinuousClock.now - started) / .seconds(1),
+                                      cleaned: cleaned != result.text.trimmingCharacters(in: .whitespacesAndNewlines),
+                                      text: expanded), bundleID: app)
                 let outcome = await TextInserter.insert(expanded, into: target)
                 Self.log.notice("Dictation \(outcome == .inserted ? "inserted" : "copied to the clipboard", privacy: .public)")
-                overlay.finish(outcome == .inserted ? .inserted : .copied)
+                overlay.finish(outcome == .inserted ? .typed(into: appName) : .copied)
             } catch where !Task.isCancelled {
                 Self.log.error("Transcription failed: \(error.localizedDescription, privacy: .public)")
                 if error is WhisperError { loading = nil } // retry the load next time

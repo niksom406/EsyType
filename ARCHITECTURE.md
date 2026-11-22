@@ -265,6 +265,15 @@ System SQLite, WAL, files `0600`, columns id, created_at, text, language, durati
 - **Quit:** `shutDown()` stops recording and drops the session, then frees the model.
 - **Limits:** text typed *before* the dictation in the same field shifts it, so undo refuses (safe, not smart); apps without Accessibility selection (some web/Electron editors) can't undo; the default recording limit stays 20 min (ADR-17), hard cap 30.
 
+### ADR-22: Phase 6, matching the Windows design (2026-11-22)
+
+- **Source:** the Windows team's "EsyType Next Generation" proposal (Phases 6–11). Built now: navigation, Dictation home, pill Undo, Insights, Style, Scratchpad, onboarding steps, theme order. Not built: EsyMeet (system-audio capture, meeting detection, live chunked transcription — its own phase, needing a new macOS permission and an engine study), and the Windows-only parts (Mica/Acrylic, Ctrl shortcuts, Georgia: the Mac already bundles Instrument Serif, the font Windows substitutes).
+- **Mapping:** Dashboard + Dictation → **Dictation** home; Text Cleanup → **Style**; AI & Models → Settings ▸ **Models** plus "Local · Small · Metal" under the sidebar; the old shortcut/recording page lives in Settings (Shortcuts, Recording).
+- **Insights:** `InsightsLog` keeps one `DayTotal` per day (words, spoken ms, processing ms, dictations, words per app **category**) in `insights.json` (0600) — numbers only, so it survives History being off. Categories come from a fixed bundle-ID list; browsers count as Other. Time saved = words ÷ typing wpm (adjustable, 40 default) − speaking − processing, never negative. The last dictation is kept in memory only.
+- **Pill:** `typed(into:)` replaces `inserted`; Undo calls the Stage 5 safe undo; shown 60 s, replaced by the next session; ✕ now dismisses any finished pill (it did nothing before).
+- **Scratchpad:** `scratchpad.txt` (0600), saved on every change; dictation types into it like any app.
+- **Downsides:** an undone dictation still counts in Insights; "Meetings transcribed" shows "—" until EsyMeet exists.
+
 ### ADR-9: Optional LLM refinement deferred to Phase 8
 
 - Candidates (to be researched then): llama.cpp with a small instruct model (1–4B, GGUF). This would be a second runtime and a large download, so it's kept out of the MVP. The original transcript is always kept.

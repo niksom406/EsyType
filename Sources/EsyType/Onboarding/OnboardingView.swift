@@ -2,12 +2,15 @@ import EsyTypeCore
 import SwiftUI
 
 struct OnboardingView: View {
-    enum Step: Int, CaseIterable { case welcome, microphone, accessibility, shortcut, yourMac, download, tryIt }
+    enum Step: Int, CaseIterable { case welcome, microphone, aboutYou, appearance, accessibility, shortcut, yourMac, download, tryIt }
 
     let permissions: Permissions
     let models: ModelLibrary
     let onFinish: () -> Void
     @State var step = Step.welcome
+    @AppStorage(Pref.userName) private var userName = ""
+    @AppStorage(Pref.meetingName) private var meetingName = ""
+    @AppStorage(Appearance.defaultsKey) private var appearance = Appearance.dark
     private let mac = HardwareDetector.current()
 
     var body: some View {
@@ -51,6 +54,31 @@ struct OnboardingView: View {
                 } else {
                     Button("Allow Microphone") { Task { await permissions.requestMicrophone() } }.buttonStyle(PrimaryButtonStyle())
                 }
+            }
+        case .aboutYou:
+            StepLayout(title: "What should EsyType call you?",
+                       message: "Used to label your lines in meeting transcripts, in place of “You”. It isn’t used to recognise your voice, and it’s stored only on this Mac. You can change it in Settings.",
+                       back: back) {
+                VStack(alignment: .leading, spacing: 10) {
+                    TextField("Your name", text: $userName, prompt: Text("Your name")).textFieldStyle(.roundedBorder)
+                    TextField("Shown in meetings as", text: $meetingName, prompt: Text("Shown in meetings as")).textFieldStyle(.roundedBorder)
+                }
+                .font(.esy(14)).esyCard()
+            } actions: {
+                Button("Skip", action: next).buttonStyle(.borderless).font(.esy(13))
+                Button("Continue", action: next).buttonStyle(PrimaryButtonStyle())
+            }
+        case .appearance:
+            StepLayout(title: "Light or dark?",
+                       message: "Follow Mac switches with your macOS setting. Your choice is kept after a restart, and you can change it in Settings.",
+                       back: back) {
+                Picker("Appearance", selection: $appearance) {
+                    ForEach(Appearance.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented).labelsHidden()
+                .onChange(of: appearance) { Appearance.apply() }
+            } actions: {
+                Button("Continue", action: next).buttonStyle(PrimaryButtonStyle())
             }
         case .accessibility:
             StepLayout(title: "Let EsyType type for you.",

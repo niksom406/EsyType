@@ -57,10 +57,10 @@ extension Color {
 
 /// The app-wide appearance setting. Dark is the brand default.
 enum Appearance: String, CaseIterable, Identifiable {
-    case dark, light, system
+    case system, dark, light // the Windows order: Follow device, Dark, Light
     static let defaultsKey = "appearance"
     var id: Self { self }
-    var title: String { rawValue.capitalized }
+    var title: String { self == .system ? "Follow Mac" : rawValue.capitalized }
 
     @MainActor static func apply() {
         let value = Appearance(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "") ?? .dark

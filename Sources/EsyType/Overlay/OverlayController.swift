@@ -5,7 +5,7 @@ import SwiftUI
 
 @MainActor @Observable
 final class OverlayModel {
-    enum Phase: Equatable { case listening, handsFree, transcribing, inserted, copied, undone, error(String) }
+    enum Phase: Equatable { case listening, handsFree, transcribing, typed(into: String), copied, undone, error(String) }
 
     var phase = Phase.listening
     var isVisible = false
@@ -15,6 +15,7 @@ final class OverlayModel {
     var notice: String?
     @ObservationIgnored var onCancel: () -> Void = {}
     @ObservationIgnored var onStop: () -> Void = {}
+    @ObservationIgnored var onUndo: () -> Void = {}
 }
 
 /// The floating recording pill. A non-activating panel, so the app you are typing in keeps focus.
@@ -25,6 +26,8 @@ final class OverlayController {
     /// ✕ and ■ during a real dictation. The preview handles its own buttons.
     var onCancel: () -> Void = {}
     var onStop: () -> Void = {}
+    /// Undo in the "Typed into …" pill.
+    var onUndo: () -> Void = {}
 
     private let model = OverlayModel()
     private lazy var panel = makePanel()
@@ -32,8 +35,16 @@ final class OverlayController {
     private var clock: Task<Void, Never>?
 
     init() {
-        model.onCancel = { [weak self] in self?.preview == nil ? self?.onCancel() : self?.stopPreview() }
+        model.onCancel = { [weak self] in
+            guard let self else { return }
+            if preview != nil { return stopPreview() }
+            switch model.phase { // ✕ on a finished pill just dismisses it
+            case .listening, .handsFree, .transcribing: onCancel()
+            default: hide()
+            }
+        }
         model.onStop = { [weak self] in self?.preview == nil ? self?.onStop() : self?.playPreview(from: 2) }
+        model.onUndo = { [weak self] in self?.onUndo() }
     }
 
     // MARK: Real dictation
@@ -73,7 +84,9 @@ final class OverlayController {
         show()
         let shown = model.phase
         Task { [weak self] in
-            try? await Task.sleep(for: .seconds(phase == .copied ? 1.6 : 2.4))
+            // "Typed into …" keeps its Undo button for 60 s, as in the Windows design; a new dictation replaces it.
+            let seconds: Double = if case .typed = phase { 60 } else if phase == .copied { 1.6 } else { 2.4 }
+            try? await Task.sleep(for: .seconds(seconds))
             if self?.model.phase == shown { self?.hide() }
         }
     }
@@ -82,7 +95,7 @@ final class OverlayController {
 
     // The menu's scripted demo with simulated levels.
     private static let script: [(OverlayModel.Phase, TimeInterval)] = [
-        (.listening, 3), (.handsFree, 3), (.transcribing, 1.8), (.inserted, 1.2),
+        (.listening, 3), (.handsFree, 3), (.transcribing, 1.8), (.typed(into: "Notes"), 1.2),
         (.copied, 2.2), (.error("No speech detected"), 2.2),
     ]
 
@@ -150,7 +163,7 @@ final class OverlayController {
         case .listening: "Recording"
         case .handsFree: "Recording hands-free"
         case .transcribing: "Transcribing"
-        case .inserted: "Inserted"
+        case .typed(let app): "Typed into \(app)"
         case .undone: "Dictation undone"
         case .copied: "Copied to clipboard. Press Command V to paste."
         case .error(let message): message

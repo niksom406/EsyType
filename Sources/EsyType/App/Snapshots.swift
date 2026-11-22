@@ -41,13 +41,14 @@ enum Snapshots {
         render(HistoryView(history: history).padding(40), NSSize(width: 720, height: 560), "history", folder)
         render(MainWindowView(models: models, history: history, dictionary: sampleDictionary(folder),
                               snippets: SnippetModel(store: SnippetStore(url: folder.appending(path: "snapshot-snippets.json"))),
+                              insights: InsightsModel(store: InsightsStore(url: folder.appending(path: "snapshot-insights.json"))),
                               permissions: permissions, openSettings: {}), NSSize(width: 820, height: 560), "main", folder)
         render(ModelsView(models: models).padding(40), NSSize(width: 720, height: 560), "models", folder)
         for step in OnboardingView.Step.allCases {
             render(OnboardingView(permissions: permissions, models: models, onFinish: {}, step: step),
                    NSSize(width: 640, height: 500), "onboarding-\(step.rawValue)-\(step)", folder)
         }
-        let phases: [OverlayModel.Phase] = [.listening, .handsFree, .transcribing, .inserted, .copied, .error("No speech detected")]
+        let phases: [OverlayModel.Phase] = [.listening, .handsFree, .transcribing, .typed(into: "Notes"), .copied, .error("No speech detected")]
         for (index, phase) in phases.enumerated() {
             let model = OverlayModel()
             model.phase = phase

@@ -5,6 +5,7 @@ All notable changes to EsyType are documented here. Format: Keep a Changelog. Ve
 ## [Unreleased]
 
 ### Added
+- 2026-11-22, Phase 6: matches the Windows design — new sidebar (Dictation, EsyMeet "Soon", Insights; Your words: History, Dictionary, Snippets, Style, Scratchpad; Settings), Dictation home with this week's figures and the last dictation, "Typed into ‹app›" pill with Undo for 60 s, Insights (numbers only), Scratchpad, onboarding "About you" and "Appearance", Settings ▸ Models.
 - 2026-11-22, Stage 5: **double-tap** the push-to-talk key for hands-free (and again to stop); **Undo Last Dictation** (⌃⌘Z or menu) that removes only the untouched dictated text, never sending ⌘Z; quitting mid-recording releases the microphone.
 - 2026-11-22, Stage 4: **Text Cleanup** screen (sidebar ▸ Personalisation): switchable rules for filler words, repeated words, repeated phrases, punctuation and spacing, and sentence capitals, with a live preview. Links, emails, code, numbers and abbreviations are never changed. The filler switch moved here from Settings ▸ Speech.
 - 2026-11-22, Stage 3: **Snippets** (sidebar ▸ Snippets): say a trigger phrase to type saved text, multi-line and any script; categories, language, enable/disable, dates, search, CSV import with preview and export. **Grouped sidebar**: Main (Dashboard, Dictation, History), Personalisation (Personal Dictionary, Snippets, Text Cleanup "Soon"), System (AI & Models, Settings). The Dictionary tab moved out of Settings into the sidebar.
@@ -15,6 +16,7 @@ All notable changes to EsyType are documented here. Format: Keep a Changelog. Ve
 - 2026-11-22, Phase 9: speech model unloads after 10 idle minutes or under memory pressure. Intel Macs decode on the CPU with all physical cores. `Scripts/privacy-check.sh`. Benchmarks for short clips, CPU-only, thread counts, 30-minute audio and unload memory.
 
 ### Fixed
+- 2026-11-22, Phase 6: ✕ on a finished pill (Copied, error) did nothing; it now dismisses it.
 - 2026-11-22, Stage 3: VoiceOver read every badge ("Beta", "Soon") as "Preview, not real data".
 - 2026-11-22, Stage 2: the Settings window was titled "Untitled" and, with 8 tabs, hid About behind a chevron; it's now titled by tab and 660 pt wide.
 - 2026-11-22, Stage 1: a near-silent recording made Whisper invent text (and take 8 s); recordings without speech are no longer transcribed. The "EsyType" spelling hint made Whisper drop full stops; it's now a punctuated sentence. The log named the default mic "CADefaultDeviceAggregate"; it now names the real device.

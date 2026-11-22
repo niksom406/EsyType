@@ -151,3 +151,8 @@ A task is marked done only with evidence (test output, measurement, or screensho
 - [x] Undo Last Dictation (⌃⌘Z, menu) via verified Accessibility selection. Evidence: real TextEdit (plain, after typing, refused after edit) and Notes.
 - [x] Quit during a session releases the mic; "Undone" pill.
 - [ ] **Your checks:** double-tap with your own fingers; ⌃⌘Z after dictating in your usual apps.
+
+## Phase 6: Windows design parity · done 2026-11-22 (evidence: `Documentation/PHASE_6_TEST_REPORT.md`)
+
+- [x] Sidebar, Dictation home, pill "Typed into … · Undo", Insights, Style, Scratchpad, About you + Appearance onboarding, Models in Settings.
+- [ ] **EsyMeet** (next phase, needs approval): meeting prompt, system-audio capture ("Others"), live transcript, meeting history, Copy for AI.

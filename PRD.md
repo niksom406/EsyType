@@ -47,6 +47,8 @@ EsyType is a native macOS menu-bar app that turns speech into text in any app. Y
 
 17. **Dictation controls (Stage 5, 2026-11-22):** three ways to dictate — hold the push-to-talk key, press ⌃⌥Space to start and stop (hands-free/toggle), or double-tap the push-to-talk key to start and stop hands-free. Esc or ✕ cancels, ■ stops. **Undo Last Dictation** (⌃⌘Z or menu) removes the last dictation only if it's still untouched where EsyType typed it, restoring any text it replaced.
 
+18. **Phase 6, Windows parity (2026-11-22):** the main window follows the Windows "Next Generation" design — sidebar Dictation / EsyMeet / Insights, "Your words" (History, Dictionary, Snippets, Style, Scratchpad), Settings; a Dictation home with the week's figures and the last dictation; the pill shows "Typed into ‹app›" with Undo for 60 s; Insights from daily numbers; Scratchpad; onboarding "About you" and "Appearance". EsyMeet (live meeting transcription) is the next phase and is shown as "Soon".
+
 **Not in MVP:** pause/resume, LLM refinement (Phase 8), fuzzy or AI corrections, streaming partials, Core ML encoder, media ducking, meetings, sync, teams.
 
 ## 5. Non-functional requirements

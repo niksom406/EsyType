@@ -10,8 +10,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     private let history = HistoryModel()
     private let dictionary = DictionaryModel()
     private let snippets = SnippetModel()
+    private let insights = InsightsModel()
     private lazy var windows = WindowController(permissions: permissions, models: models, history: history, dictionary: dictionary,
-                                                     snippets: snippets)
+                                                     snippets: snippets, insights: insights)
     private lazy var modelItem = disabled("No speech model installed")
     private var dictation: DictationController?
     private var statusItem: NSStatusItem?
@@ -31,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         ])
         Appearance.apply()
         dictation = DictationController(overlay: overlay, models: models, history: history, dictionary: dictionary,
-                                         snippets: snippets)
+                                         snippets: snippets, insights: insights)
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated { [weak self] in self?.dictation?.hotkeys.reload() }
         }
