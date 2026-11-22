@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en-GB</string>
+	<key>CFBundleExecutable</key>
+	<string>EsyType</string>
+	<key>CFBundleIdentifier</key>
+	<string>co.uk.esyai.esytype</string>
+	<key>CFBundleName</key>
+	<string>EsyType</string>
+	<key>CFBundleDisplayName</key>
+	<string>EsyType</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 EsyAI</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>ATSApplicationFontsPath</key>
+	<string>Fonts</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>EsyType listens only while you’re dictating, and transcribes your voice on this Mac. Audio never leaves your Mac.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 EsyAI</string>
+</dict>
+</plist>

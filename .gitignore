@@ -1,0 +1,12 @@
+# Build output
+.build/
+build/
+.swiftpm/
+*.dmg
+.DS_Store
+
+# Kept local, not published: internal research and AI-assistant setup
+research/
+AGENTS.md
+CLAUDE.md
+.claude/
