@@ -59,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     // Input Monitoring may have just been allowed in System Settings.
     func applicationDidBecomeActive(_ notification: Notification) { dictation?.hotkeys.enableHoldKey() }
 
-    func applicationWillTerminate(_ notification: Notification) { dictation?.unloadModel() }
+    func applicationWillTerminate(_ notification: Notification) { dictation?.shutDown() }
 
     // Menu-bar apps keep running with no windows open.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
@@ -80,6 +80,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
         paste.keyEquivalent = "v"
         paste.keyEquivalentModifierMask = [.control, .command]
         menu.addItem(paste)
+        let undo = item("Undo Last Dictation", #selector(undoLast))
+        undo.keyEquivalent = "z"
+        undo.keyEquivalentModifierMask = [.control, .command]
+        menu.addItem(undo)
         menu.addItem(item("Preview Recording Overlay", #selector(previewOverlay)))
         menu.addItem(.separator())
 
@@ -134,6 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
 
     @objc private func toggleDictation() { dictation?.toggle() }
     @objc private func pasteLast() { dictation?.pasteLast() }
+    @objc private func undoLast() { dictation?.undoLast() }
 
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         item.action != #selector(pasteLast) || dictation?.lastTranscript != nil

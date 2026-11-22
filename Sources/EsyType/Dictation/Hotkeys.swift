@@ -9,6 +9,7 @@ import os
 final class Hotkeys {
     var onEvent: (DictationMachine.Event) -> Void = { _ in }
     var onPasteLast: () -> Void = {}
+    var onUndo: () -> Void = {}
     /// Called with a message when a shortcut can't be registered (usually another app already uses it).
     var onConflict: (String) -> Void = { _ in }
 
@@ -21,7 +22,7 @@ final class Hotkeys {
         }
     }
 
-    private static let toggleID: UInt32 = 1, escapeID: UInt32 = 2, pasteLastID: UInt32 = 3
+    private static let toggleID: UInt32 = 1, escapeID: UInt32 = 2, pasteLastID: UInt32 = 3, undoID: UInt32 = 4
     private static let log = Logger(subsystem: "co.uk.esyai.esytype", category: "hotkeys")
     private var handler: EventHandlerRef?
     private var toggleRef: EventHotKeyRef?
@@ -48,6 +49,9 @@ final class Hotkeys {
         reload()
         if register(UInt32(kVK_ANSI_V), modifiers: UInt32(controlKey | cmdKey), id: Self.pasteLastID) == nil {
             onConflict("⌃⌘V (Paste Last Transcript) is used by another app.")
+        }
+        if register(UInt32(kVK_ANSI_Z), modifiers: UInt32(controlKey | cmdKey), id: Self.undoID) == nil {
+            onConflict("⌃⌘Z (Undo Last Dictation) is used by another app. Use the menu instead.")
         }
         enableHoldKey()
         // Input Monitoring is often allowed in System Settings while another app is in front: keep trying.
@@ -108,6 +112,7 @@ final class Hotkeys {
         switch id {
         case Self.escapeID: onEvent(.cancel)
         case Self.pasteLastID: onPasteLast()
+        case Self.undoID: onUndo()
         default: onEvent(.togglePressed(at: Self.now))
         }
     }

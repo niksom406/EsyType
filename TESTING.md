@@ -258,3 +258,7 @@ See `Documentation/STAGE_3_TEST_REPORT.md`. Unit (Simulated input): 12 snippet t
 ## Stage 4: Text Cleanup (2026-11-22)
 
 See `Documentation/STAGE_4_TEST_REPORT.md`. Unit (Simulated input): 8 cleanup test groups (each rule, what it must not touch, protected text, all switches off), 97/97 pass. Real device: the Text Cleanup screen and its live preview in the real app; dictation into TextEdit with the repeat rules off and on; Hindi reduplication kept; dictionary and snippets still applied after cleanup.
+
+## Stage 5: dictation controls and undo (2026-11-22)
+
+See `Documentation/STAGE_5_TEST_REPORT.md`. Unit (Simulated events): 4 new `DictationMachine` tests (double-tap start/stop, slow taps, setting off, repeated/mixed shortcuts, taps while transcribing); 101/101 pass. Real device (HID key events, `say` into the mic): push-to-talk, toggle, double-tap; live pill read through Accessibility; Esc; default-input switch mid-recording; undo in TextEdit ×3 and Notes; a real shortcut clash with a second process.

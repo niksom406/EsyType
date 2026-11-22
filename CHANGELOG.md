@@ -5,6 +5,7 @@ All notable changes to EsyType are documented here. Format: Keep a Changelog. Ve
 ## [Unreleased]
 
 ### Added
+- 2026-11-22, Stage 5: **double-tap** the push-to-talk key for hands-free (and again to stop); **Undo Last Dictation** (⌃⌘Z or menu) that removes only the untouched dictated text, never sending ⌘Z; quitting mid-recording releases the microphone.
 - 2026-11-22, Stage 4: **Text Cleanup** screen (sidebar ▸ Personalisation): switchable rules for filler words, repeated words, repeated phrases, punctuation and spacing, and sentence capitals, with a live preview. Links, emails, code, numbers and abbreviations are never changed. The filler switch moved here from Settings ▸ Speech.
 - 2026-11-22, Stage 3: **Snippets** (sidebar ▸ Snippets): say a trigger phrase to type saved text, multi-line and any script; categories, language, enable/disable, dates, search, CSV import with preview and export. **Grouped sidebar**: Main (Dashboard, Dictation, History), Personalisation (Personal Dictionary, Snippets, Text Cleanup "Soon"), System (AI & Models, Settings). The Dictionary tab moved out of Settings into the sidebar.
 - 2026-11-22, Stage 2: **Personal dictionary** (Settings ▸ Dictionary): exact whole-word replacements after Whisper plus spelling hints to Whisper, per-entry language/category/enabled/description, search and filters, conflict warnings, CSV import with preview, CSV export, sample template. Stored only on this Mac (`dictionary.json`, 0600). Also in the main window's sidebar.

@@ -144,3 +144,10 @@ A task is marked done only with evidence (test output, measurement, or screensho
 - [x] Text Cleanup screen in the sidebar (Personalisation): switches with examples, always-on list, live Try it, planned features clearly marked. Evidence: real app via Accessibility; the preview found a bug (" .see") that was then fixed and tested.
 - [x] Dictation uses the switches. Evidence: real TextEdit runs with the repeat rules off (repeat kept) and on (removed); Hindi doubling kept; dictionary + snippet still applied.
 - [ ] **Your checks:** flip the switches in the screen by hand; dictate with your own fillers ("um", restarts).
+
+## Stage 5: Dictation controls and undo · done 2026-11-22 (evidence: `Documentation/STAGE_5_TEST_REPORT.md`)
+
+- [x] Double-tap push-to-talk key → hands-free, double-tap to stop; setting to turn it off. Evidence: 4 new machine tests; real double-tap run.
+- [x] Undo Last Dictation (⌃⌘Z, menu) via verified Accessibility selection. Evidence: real TextEdit (plain, after typing, refused after edit) and Notes.
+- [x] Quit during a session releases the mic; "Undone" pill.
+- [ ] **Your checks:** double-tap with your own fingers; ⌃⌘Z after dictating in your usual apps.

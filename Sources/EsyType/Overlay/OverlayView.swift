@@ -59,6 +59,8 @@ struct OverlayView: View {
             Text("Transcribing…")
         case .inserted:
             Text("Inserted")
+        case .undone:
+            Text("Dictation undone")
         case .copied:
             Text("Copied. Press ⌘V to paste")
         case .error(let message):
@@ -72,7 +74,7 @@ struct OverlayView: View {
         switch model.phase {
         case .listening, .handsFree: Brand.recording
         case .transcribing: .white
-        case .inserted: Brand.success
+        case .inserted, .undone: Brand.success
         case .copied, .error: Brand.warning
         }
     }
@@ -81,7 +83,7 @@ struct OverlayView: View {
         switch model.phase {
         case .listening, .handsFree, .transcribing: "Cancel dictation"
         case .copied, .error: "Dismiss"
-        case .inserted: nil
+        case .inserted, .undone: nil
         }
     }
 

@@ -256,6 +256,15 @@ System SQLite, WAL, files `0600`, columns id, created_at, text, language, durati
 - **Options rejected:** an LLM or model (brief forbids; nondeterministic); a word-frequency "disfluency" model; aggressive sentence rewriting.
 - **Downsides:** rules can miss unusual cases (a restart with a different word, "I think, I believe"), and a deliberate repeat that continues the sentence ("we need to, we need to act") is removed — the user can switch the rule off. Migration: none.
 
+### ADR-21: Dictation controls and safe undo (Stage 5, 2026-11-22)
+
+- **Modes.** Toggle and hands-free are one mode in EsyType (press to start, press or ■ to stop; it runs until stopped, cancelled or the limit). Push-to-talk unchanged. **Double-tap** of the push-to-talk key (each tap < 0.3 s, ≤ 0.4 s between release and press) latches hands-free; a double-tap stops it. Lives in `DictationMachine` (pure, tested); the first tap never opens the mic (150 ms start delay, discarded). Setting: Shortcuts ▸ "Double-tap …" (on by default). Uses the existing listen-only event tap (Input Monitoring) — no new monitoring, no private API.
+- **Fn/🌐 not offered:** macOS assigns Globe to emoji/Dictation/input sources, and Fn arrives only as a modifier flag that hardware and settings change; it would need raw HID access. Right ⌥ / Right ⌘ are reliable.
+- **Conflicts:** Carbon `RegisterEventHotKey` refuses only system/same-app clashes. Measured: a second process registering ⌃⌥Space got status 0 and so did EsyType; the first registrant receives the key. EsyType reports what macOS refuses and offers other presets.
+- **Undo.** Never ⌘Z (it would undo whatever the app did last). Before pasting, `TextInserter` records the focused element, the UTF-16 location of the cursor, the exact typed string (incl. the added leading space) and any selected text it replaces — in memory only. Undo: same app in front → the element's text at that location still equals the typed string → select exactly that range via Accessibility (read back to verify) → set the selection to the replaced text; if the app refuses, a Delete key for that verified selection only (empty replacement only) → verify the final text. Anything else: refuse with a reason. One level, cleared on use or when a dictation is copied instead.
+- **Quit:** `shutDown()` stops recording and drops the session, then frees the model.
+- **Limits:** text typed *before* the dictation in the same field shifts it, so undo refuses (safe, not smart); apps without Accessibility selection (some web/Electron editors) can't undo; the default recording limit stays 20 min (ADR-17), hard cap 30.
+
 ### ADR-9: Optional LLM refinement deferred to Phase 8
 
 - Candidates (to be researched then): llama.cpp with a small instruct model (1–4B, GGUF). This would be a second runtime and a large download, so it's kept out of the MVP. The original transcript is always kept.

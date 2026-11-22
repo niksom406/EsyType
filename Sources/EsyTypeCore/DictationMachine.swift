@@ -27,14 +27,26 @@ public struct DictationMachine: Equatable, Sendable {
 
     /// Shorter holds are taps, not dictation.
     public static let minimumHold: TimeInterval = 0.3
+    /// Two taps of the hold key this close together (release to press) latch hands-free, or stop it.
+    public static let doubleTapWindow: TimeInterval = 0.4
 
     public private(set) var state = State.idle
+    /// Settings ▸ Shortcuts ▸ double-tap. Off: taps are ignored, as before.
+    public var doubleTap = true
+    private var lastTapEnd: TimeInterval?
+    /// The key-up of the press that latched or stopped hands-free is not a tap.
+    private var ignoreHoldUp = false
 
     public init() {}
 
     public mutating func handle(_ event: Event) -> Effect {
         switch (state, event) {
         case (.idle, .holdKeyDown(let time)):
+            if isDoubleTap(at: time) {
+                state = .recording(.handsFree, since: time)
+                return .startRecording(.handsFree)
+            }
+            ignoreHoldUp = false
             state = .recording(.hold, since: time)
             return .startRecording(.hold)
         case (.idle, .togglePressed(let time)):
@@ -42,8 +54,20 @@ public struct DictationMachine: Equatable, Sendable {
             return .startRecording(.handsFree)
 
         case (.recording(.hold, let since), .holdKeyUp(let time)):
-            state = time - since < Self.minimumHold ? .idle : .transcribing
-            return state == .idle ? .discardRecording : .stopAndTranscribe
+            guard time - since >= Self.minimumHold else { // a tap: maybe the first of a double-tap
+                state = .idle
+                lastTapEnd = time
+                return .discardRecording
+            }
+            state = .transcribing
+            return .stopAndTranscribe
+        case (.recording(.handsFree, _), .holdKeyDown(let time)):
+            guard isDoubleTap(at: time) else { return .none }
+            state = .transcribing
+            return .stopAndTranscribe
+        case (.recording(.handsFree, _), .holdKeyUp(let time)):
+            if ignoreHoldUp { ignoreHoldUp = false } else { lastTapEnd = time }
+            return .none
         case (.recording(.hold, _), .otherKeyWhileHeld):
             state = .idle
             return .discardRecording
@@ -64,5 +88,12 @@ public struct DictationMachine: Equatable, Sendable {
         default: // includes starting while busy transcribing
             return .none
         }
+    }
+
+    private mutating func isDoubleTap(at time: TimeInterval) -> Bool {
+        guard doubleTap, let last = lastTapEnd, time - last <= Self.doubleTapWindow else { return false }
+        lastTapEnd = nil
+        ignoreHoldUp = true
+        return true
     }
 }

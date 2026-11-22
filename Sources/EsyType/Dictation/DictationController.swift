@@ -49,6 +49,7 @@ final class DictationController {
         self.history = history
         hotkeys.onEvent = { [weak self] in self?.handle($0) }
         hotkeys.onPasteLast = { [weak self] in self?.pasteLast() }
+        hotkeys.onUndo = { [weak self] in self?.undoLast() }
         hotkeys.onConflict = { [weak overlay] message in
             Self.log.error("Shortcut not registered: \(message, privacy: .public)")
             overlay?.finish(.error(message))
@@ -78,6 +79,27 @@ final class DictationController {
         loading = nil
     }
 
+    /// Removes the last dictation if it's untouched (TextInserter.undoLast). Only the outcome is logged.
+    func undoLast() {
+        guard machine.state == .idle else { return }
+        switch TextInserter.undoLast() {
+        case .undone:
+            Self.log.notice("Undo last dictation: done")
+            overlay.finish(.undone)
+        case .unavailable(let reason):
+            Self.log.notice("Undo last dictation: \(reason, privacy: .public)")
+            overlay.finish(.error(reason))
+        }
+    }
+
+    /// Quitting mid-session: release the microphone and drop the session, then free the model.
+    func shutDown() {
+        pendingStart?.cancel()
+        transcription?.cancel()
+        if case .recording = machine.state { _ = recorder.stop() }
+        unloadModel()
+    }
+
     func toggle() { handle(.togglePressed(at: ProcessInfo.processInfo.systemUptime)) }
 
     func pasteLast() {
@@ -87,6 +109,7 @@ final class DictationController {
     }
 
     private func handle(_ event: DictationMachine.Event) {
+        machine.doubleTap = UserDefaults.standard.bool(forKey: Pref.doubleTap)
         let effect = machine.handle(event)
         hotkeys.escapeActive = machine.state != .idle
         switch effect {

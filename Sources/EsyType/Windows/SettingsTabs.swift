@@ -68,6 +68,7 @@ private struct GeneralTab: View {
 struct ShortcutsTab: View {
     @AppStorage(Pref.holdKey) private var holdKey = HoldKey.rightOption
     @AppStorage(Pref.toggleShortcut) private var toggle = ToggleShortcut.controlOptionSpace
+    @AppStorage(Pref.doubleTap) private var doubleTap = true
 
     var body: some View {
         Form {
@@ -78,12 +79,15 @@ struct ShortcutsTab: View {
                 Picker("Hands-free (press to start and stop)", selection: $toggle) {
                     ForEach(ToggleShortcut.allCases) { Text($0.title).tag($0) }
                 }
+                Toggle("Double-tap the push-to-talk key for hands-free", isOn: $doubleTap)
+                    .disabled(holdKey == .off)
             } footer: {
                 Text("Hold keys need Input Monitoring. Pressed with other keys or modifiers, they work as usual and don’t start dictation.")
                     .font(.esy(12)).foregroundStyle(.secondary)
             }
             LabeledContent("Cancel while recording") { KeyCap("Esc") }
             LabeledContent("Paste last transcript") { KeyCap("⌃⌘V") }
+            LabeledContent("Undo last dictation") { KeyCap("⌃⌘Z") }
         }
         .formStyle(.grouped)
     }

@@ -5,7 +5,7 @@ import SwiftUI
 
 @MainActor @Observable
 final class OverlayModel {
-    enum Phase: Equatable { case listening, handsFree, transcribing, inserted, copied, error(String) }
+    enum Phase: Equatable { case listening, handsFree, transcribing, inserted, copied, undone, error(String) }
 
     var phase = Phase.listening
     var isVisible = false
@@ -151,6 +151,7 @@ final class OverlayController {
         case .handsFree: "Recording hands-free"
         case .transcribing: "Transcribing"
         case .inserted: "Inserted"
+        case .undone: "Dictation undone"
         case .copied: "Copied to clipboard. Press Command V to paste."
         case .error(let message): message
         }
