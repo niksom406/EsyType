@@ -239,13 +239,16 @@ final class DictationController {
         let app = target.flatMap { NSRunningApplication(processIdentifier: $0)?.bundleIdentifier }
         let started = ContinuousClock.now
         let words = dictionary.engine, prompt = words.prompt(language: language), expander = snippets.engine
+        let style = StyleModel.current.rules(for: app)
         transcription = Task {
             do {
                 let result = try await engine.value.transcribe(samples, language: language, translate: translate, prompt: prompt)
                 Self.log.notice("Transcribed \(samples.count / 16_000) s of audio in \(ContinuousClock.now - started, privacy: .public)")
                 let cleaned = TextCleanup.clean(result.text, options: cleanup, language: translate ? "en" : result.language)
+                // Style for this app (English only), then the dictionary, so your words are never restyled.
+                let styled = StyleEngine.apply(cleaned, rules: style, language: translate ? "en" : result.language)
                 // Exact replacements after cleanup; the count only is logged, never the words.
-                let (text, replaced) = words.apply(to: cleaned, language: translate ? "en" : result.language)
+                let (text, replaced) = words.apply(to: styled, language: translate ? "en" : result.language)
                 if replaced > 0 { Self.log.notice("Dictionary replacements: \(replaced)") }
                 // Snippets last, so dictionary rules never change a snippet's saved text. Counts only in the log.
                 let (expanded, expansions) = expander.expand(text, language: translate ? "en" : result.language)
@@ -259,8 +262,8 @@ final class DictationController {
                 lastTranscript = expanded // Paste Last types what was typed
                 // Saved before pasting, so nothing is lost if the paste lands nowhere. History keeps the transcript
                 // before snippet expansion, so saved addresses and signatures aren't copied into it every time.
-                history.save(text, language: result.language, durationMs: samples.count / 16,
-                             modelID: model.id, appBundleID: app)
+                let saved = history.save(text, language: result.language, durationMs: samples.count / 16,
+                                         modelID: model.id, appBundleID: app)
                 endSession() // Esc can't interrupt the paste and clipboard restore below
                 let appName = target.flatMap { NSRunningApplication(processIdentifier: $0)?.localizedName } ?? "your app"
                 insights.record(.init(app: appName, spokenSeconds: Double(samples.count) / AudioRecorder.sampleRate,
@@ -269,6 +272,7 @@ final class DictationController {
                                       text: expanded), bundleID: app)
                 let outcome = await TextInserter.insert(expanded, into: target)
                 Self.log.notice("Dictation \(outcome == .inserted ? "inserted" : "copied to the clipboard", privacy: .public)")
+                if outcome == .inserted { history.markInserted(saved) }
                 overlay.finish(outcome == .inserted ? .typed(into: appName) : .copied)
             } catch where !Task.isCancelled {
                 Self.log.error("Transcription failed: \(error.localizedDescription, privacy: .public)")

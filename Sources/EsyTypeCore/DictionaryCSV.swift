@@ -2,26 +2,52 @@ import Foundation
 
 /// The dictionary's CSV columns, import and export. The CSV mechanics are in CSVFile.
 public enum DictionaryCSV {
-    public static let columns = ["recognised_text", "replacement_text", "language", "category", "enabled", "description"]
+    public static let columns = ["kind", "recognised_text", "replacement_text", "language", "category", "enabled", "description"]
     public static let maxBytes = CSVFile.maxBytes
     public typealias FileError = CSVFile.FileError
     public typealias Row = CSVRow<DictionaryEntry>
+    /// The Windows app's names (kind, term, replacement) and the JSON keys.
+    static let aliases = ["term": "recognised_text", "spoken": "recognised_text", "replacement": "replacement_text",
+                          "note": "description"]
 
     public static func parse(_ data: Data) throws(FileError) -> [Row] {
-        try CSVFile.parse(data, required: Array(columns.prefix(5))) { value in
-            guard let enabled = CSVFile.bool(value("enabled")) else { return .failure(RowError(reason: "“enabled” must be true or false.")) }
-            let entry = DictionaryEntry(spoken: value("recognised_text"), replacement: value("replacement_text"),
-                                        language: value("language"), category: value("category"),
-                                        enabled: enabled, note: value("description"))
-            do { return .success(try PersonalDictionary.validated(entry)) } catch {
-                return .failure(RowError(reason: error.localizedDescription))
-            }
+        try CSVFile.parse(data, required: ["recognised_text"], aliases: aliases, make: entry)
+    }
+
+    public static func parseJSON(_ data: Data) throws(FileError) -> [Row] {
+        try CSVFile.parseJSON(data, required: ["recognised_text"], aliases: aliases, make: entry)
+    }
+
+    /// One row → an entry. No kind column: a word if there's no replacement (or it's the same), else a correction.
+    static func entry(_ value: (String) -> String) -> Result<DictionaryEntry, RowError> {
+        guard let enabled = CSVFile.bool(value("enabled")) else { return .failure(RowError(reason: "“enabled” must be true or false.")) }
+        let term = value("recognised_text"), replacement = value("replacement_text")
+        let kind: DictionaryEntry.Kind
+        switch value("kind").trimmingCharacters(in: .whitespaces).lowercased() {
+        case "word": kind = .word
+        case "correction": kind = .correction
+        case "": kind = replacement.isEmpty || replacement == term ? .word : .correction
+        default: return .failure(RowError(reason: "“kind” must be word or correction."))
+        }
+        let entry = DictionaryEntry(kind: kind, spoken: term, replacement: replacement.isEmpty ? term : replacement,
+                                    language: value("language"), category: value("category"),
+                                    enabled: enabled, note: value("description"))
+        do { return .success(try PersonalDictionary.validated(entry)) } catch {
+            return .failure(RowError(reason: error.localizedDescription))
         }
     }
 
     public static func export(_ entries: [DictionaryEntry]) -> Data {
         CSVFile.export(header: columns, rows: entries.map {
-            [$0.spoken, $0.replacement, $0.language, $0.category, $0.enabled ? "true" : "false", $0.note]
+            [$0.kind.rawValue, $0.spoken, $0.replacement, $0.language, $0.category, $0.enabled ? "true" : "false", $0.note]
+        })
+    }
+
+    /// The Windows JSON shape: kind, term, replacement, plus the Mac's extra fields.
+    public static func exportJSON(_ entries: [DictionaryEntry]) -> Data {
+        CSVFile.exportJSON(entries.map {
+            ["kind": $0.kind.rawValue, "term": $0.spoken, "replacement": $0.replacement, "language": $0.language,
+             "category": $0.category, "enabled": $0.enabled, "description": $0.note]
         })
     }
 }
@@ -31,6 +57,7 @@ extension PersonalDictionary {
     public func plan(_ rows: [DictionaryCSV.Row]) -> ImportPlan<DictionaryEntry> {
         ImportPlan(rows: rows, existing: entries, scope: \.scope, same: {
             $0.replacement == $1.replacement && $0.category == $1.category && $0.enabled == $1.enabled && $0.note == $1.note
+                && $0.kind == $1.kind
         }, keeping: { existing, new in
             var updated = new
             updated.id = existing.id

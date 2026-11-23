@@ -23,7 +23,10 @@ final class DictionaryModel {
         Self.log.notice("Dictionary loaded: \(dictionary.entries.count) entries, \(dictionary.activeCount) active\(recovered ? ", damaged file set aside" : "", privacy: .public)")
     }
 
-    var engine: DictionaryEngine { DictionaryEngine(dictionary) }
+    var engine: DictionaryEngine {
+        let defaults = UserDefaults.standard
+        return DictionaryEngine(dictionary, builtIns: defaults.bool(forKey: Pref.builtInNames), hints: defaults.bool(forKey: Pref.dictionaryHints))
+    }
 
     /// Applies `body` and saves. Returns an error message instead of changing anything if it fails.
     @discardableResult

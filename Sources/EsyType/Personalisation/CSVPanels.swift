@@ -7,9 +7,9 @@ import UniformTypeIdentifiers
 @MainActor
 enum CSVPanels {
     /// The chosen file's contents, or nil if the user cancelled.
-    static func open(message: String) throws -> Data? {
+    static func open(message: String, types: [UTType] = [.commaSeparatedText, .plainText]) throws -> Data? {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.commaSeparatedText, .plainText]
+        panel.allowedContentTypes = types
         panel.message = message
         guard panel.runModal() == .OK, let url = panel.url else { return nil }
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0

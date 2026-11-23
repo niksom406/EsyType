@@ -5,6 +5,7 @@ All notable changes to EsyType are documented here. Format: Keep a Changelog. Ve
 ## [Unreleased]
 
 ### Added
+- 2026-11-23: Windows features on the Mac — **Style** per app (Standard, Professional, Formal, Casual, Concise, Custom) with live examples and Try it; Dictionary **words and corrections**, built-in product names, hint switch (off by default), JSON import/export, Delete all; Snippets **whole dictation / anywhere**, {date} {time} {day}, JSON; History **Not inserted**, Edit, CSV/JSON export; Scratchpad **multiple notes**, search, .txt/.md export. Every page has a hero banner with the voice wave.
 - 2026-11-23, Insights: animated "Words per day" chart (7 / 30 / 90 days, average line); figures count up, the heatmap fades in, week and category bars grow when the page opens (off with Reduce Motion).
 - 2026-11-22, Phase 6: Insights redesigned as in the Windows design — four figure tiles, an 18-week activity heatmap with streak / busiest day / daily average, this week by day, and app kinds; both themes.
 - 2026-11-22, Phase 6: new Dictation home ("Welcome back", animated waveform hero, total words / wpm / day streak, recent dictations by day); frosted-glass window and cards; bigger, freely resizable window; EsyType now always shows in the Dock while running.

@@ -153,8 +153,10 @@ private func csv(_ text: String) throws -> [DictionaryCSV.Row] { try DictionaryC
 @Test func rejectsBadFilesAndBadRowsWithReasons() throws {
     #expect(throws: DictionaryCSV.FileError.notUTF8) { try DictionaryCSV.parse(Data([0xFF, 0xFE, 0x00, 0xD8])) }
     #expect(throws: DictionaryCSV.FileError.empty) { try csv("") }
-    #expect(throws: DictionaryCSV.FileError.missingColumns(["language", "category", "enabled"])) {
-        try csv("recognised_text,replacement_text\na,b")
+    // Language, category and enabled are optional (the Windows CSV has only kind, term, replacement);
+    // the spoken term is what must be there.
+    #expect(throws: DictionaryCSV.FileError.missingColumns(["recognised_text"])) {
+        try csv("word,replacement_text\na,b")
     }
     #expect(throws: DictionaryCSV.FileError.unterminatedQuote(line: 2)) {
         try csv("recognised_text,replacement_text,language,category,enabled\n\"a,b,en,x,true")
@@ -178,7 +180,7 @@ private func csv(_ text: String) throws -> [DictionaryCSV.Row] { try DictionaryC
     ]
     let data = DictionaryCSV.export(tricky)
     let text = String(decoding: data, as: UTF8.self)
-    #expect(text.hasPrefix("\u{FEFF}\"recognised_text\""))
+    #expect(text.hasPrefix("\u{FEFF}\"kind\",\"recognised_text\""))
     #expect(text.contains("\"'+1\"") && text.contains("\"'=Formula?\"")) // never a live spreadsheet formula
     let back = try DictionaryCSV.parse(data).map { try $0.result.get() }
     #expect(back.map(\.spoken) == tricky.map(\.spoken))
@@ -238,4 +240,35 @@ private func csv(_ text: String) throws -> [DictionaryCSV.Row] { try DictionaryC
     #expect(plan.rejected.isEmpty && plan.additions.count == DictionaryCSV.sampleEntries.count)
     #expect(plan.additions.allSatisfy { $0.note.hasPrefix("SAMPLE") })
     #expect(Set(plan.additions.map(\.language)) == ["", "en", "hi", "mr"])
+}
+
+// MARK: Stage-6 parity with Windows
+
+@Test func wordsAreSpelledAsEnteredEvenWhenSplit() throws {
+    var d = PersonalDictionary()
+    try d.add(DictionaryEntry(kind: .word, spoken: "EsyType", replacement: "ignored"))
+    #expect(d.entries[0].replacement == "EsyType")
+    let engine = DictionaryEngine(d)
+    #expect(engine.apply(to: "I use esytype and Esy Type daily", language: "en").text == "I use EsyType and EsyType daily")
+}
+
+@Test func builtInNamesOnlyWhenSwitchedOnAndYoursWin() throws {
+    #expect(DictionaryEngine(PersonalDictionary()).apply(to: "ask chat gpt", language: "en").text == "ask chat gpt")
+    #expect(DictionaryEngine(PersonalDictionary(), builtIns: true).apply(to: "ask chat gpt about superbase", language: "en").text
+            == "ask ChatGPT about Supabase")
+    let mine = PersonalDictionary([DictionaryEntry(spoken: "chat gpt", replacement: "Chat-GPT")])
+    #expect(DictionaryEngine(mine, builtIns: true).apply(to: "ask chat gpt", language: "en").text == "ask Chat-GPT")
+    #expect(BuiltInNames.names.count >= 25)
+}
+
+@Test func hintsCanBeSwitchedOff() {
+    let d = PersonalDictionary([DictionaryEntry(spoken: "open ai", replacement: "OpenAI")])
+    #expect(DictionaryEngine(d, hints: false).prompt(language: nil) == TextCleanup.whisperPrompt)
+    #expect(DictionaryEngine(d, hints: true).prompt(language: nil).hasSuffix("OpenAI."))
+}
+
+@Test func oldSavedEntriesWithoutKindStillLoad() throws {
+    let json = #"{"id":"8A4A9FCF-30C2-49F4-A178-C02420BC54F2","spoken":"project falcon","replacement":"Project FALCON-9","language":"en","category":"Brand","enabled":true,"note":""}"#
+    let entry = try JSONDecoder().decode(DictionaryEntry.self, from: Data(json.utf8))
+    #expect(entry.kind == .correction && entry.replacement == "Project FALCON-9")
 }

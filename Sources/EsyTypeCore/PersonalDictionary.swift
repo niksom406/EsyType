@@ -1,8 +1,13 @@
 import Foundation
 
 /// One personal-dictionary rule: when Whisper writes `spoken`, EsyType types `replacement`.
+/// A **word** is spelled exactly as entered whenever it's heard (spoken = replacement); a **correction** maps what
+/// the speech engine writes to what you want.
 public struct DictionaryEntry: Codable, Equatable, Hashable, Identifiable, Sendable {
+    public enum Kind: String, Codable, Sendable { case word, correction }
+
     public var id: UUID
+    public var kind: Kind
     public var spoken: String
     public var replacement: String
     /// "" = any language, otherwise a Whisper language code such as "en", "hi" or "mr".
@@ -11,9 +16,10 @@ public struct DictionaryEntry: Codable, Equatable, Hashable, Identifiable, Senda
     public var enabled: Bool
     public var note: String
 
-    public init(id: UUID = UUID(), spoken: String, replacement: String, language: String = "",
+    public init(id: UUID = UUID(), kind: Kind = .correction, spoken: String, replacement: String, language: String = "",
                 category: String = "", enabled: Bool = true, note: String = "") {
         self.id = id
+        self.kind = kind
         self.spoken = spoken
         self.replacement = replacement
         self.language = language
@@ -25,6 +31,28 @@ public struct DictionaryEntry: Codable, Equatable, Hashable, Identifiable, Senda
     /// `spoken` ignoring case, spacing and Unicode composition: two entries with the same key and language
     /// are duplicates or conflicts.
     public var key: String { PhraseMatcher.key(spoken) }
+
+    /// Also matched for a word: "EsyType" as Whisper often splits it, "esy type".
+    var splitKey: String? {
+        guard kind == .word else { return nil }
+        let split = PhraseMatcher.key(spoken.replacing(/(\p{Ll})(\p{Lu})/) { "\($0.output.1) \($0.output.2)" })
+        return split == key ? nil : split
+    }
+
+    enum CodingKeys: String, CodingKey { case id, kind, spoken, replacement, language, category, enabled, note }
+
+    // Entries saved before words existed have no kind: they are corrections.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        kind = try c.decodeIfPresent(Kind.self, forKey: .kind) ?? .correction
+        spoken = try c.decode(String.self, forKey: .spoken)
+        replacement = try c.decode(String.self, forKey: .replacement)
+        language = try c.decodeIfPresent(String.self, forKey: .language) ?? ""
+        category = try c.decodeIfPresent(String.self, forKey: .category) ?? ""
+        enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
+        note = try c.decodeIfPresent(String.self, forKey: .note) ?? ""
+    }
 
     var scope: String { "\(key)\u{1F}\(language)" }
 }
@@ -107,6 +135,7 @@ public struct PersonalDictionary: Equatable, Sendable {
     static func validated(_ entry: DictionaryEntry) throws -> DictionaryEntry {
         var entry = entry
         entry.spoken = entry.spoken.trimmingCharacters(in: .whitespacesAndNewlines)
+        if entry.kind == .word { entry.replacement = entry.spoken } // a word is written as entered
         entry.replacement = entry.replacement.trimmingCharacters(in: .whitespacesAndNewlines)
         entry.language = entry.language.trimmingCharacters(in: .whitespaces).lowercased()
         entry.category = entry.category.trimmingCharacters(in: .whitespacesAndNewlines)

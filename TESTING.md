@@ -266,3 +266,7 @@ See `Documentation/STAGE_5_TEST_REPORT.md`. Unit (Simulated events): 4 new `Dict
 ## Phase 6: Windows design parity (2026-11-22)
 
 See `Documentation/PHASE_6_TEST_REPORT.md`. Unit (Simulated): 4 Insights tests; 105/105 pass. Real device: sidebar read through Accessibility; dictation into TextEdit → pill "Typed into TextEdit · Undo" → Undo button restored the document; Dictation home and Insights figures updated; `insights.json` numbers only; Scratchpad dictation saved (0600). Onboarding steps and pill by offscreen render.
+
+## Windows parity pages (2026-11-23)
+
+See `Documentation/PARITY_PAGES_TEST_REPORT.md`. Unit (Simulated): Style (Windows example in every style, careful matching, full stop, per-app), dictionary words/built-ins/hints/old-entry decoding, CSV/JSON parity, snippet modes and placeholders, history upgrade of an old-format file, notes migration; 122/122 pass. Real device: all five pages opened; Professional style applied in real TextEdit dictation.

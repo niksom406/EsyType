@@ -38,7 +38,17 @@ enum Snapshots {
         while !seeded { RunLoop.main.run(until: .now + 0.05) }
         let history = HistoryModel(url: historyURL)
         RunLoop.main.run(until: .now + 0.5) // let the first load finish
-        render(HistoryView(history: history).padding(40), NSSize(width: 720, height: 560), "history", folder)
+        render(HistoryView(history: history).padding(40).background(Brand.canvas), NSSize(width: 980, height: 900), "history", folder)
+        let pages: [(String, AnyView)] = [
+            ("page-dictionary", AnyView(DictionaryPage(model: sampleDictionary(folder)))),
+            ("page-snippets", AnyView(SnippetsView(model: sampleSnippets(folder)))),
+            ("page-style", AnyView(StylePage(history: history))),
+            ("page-scratchpad", AnyView(ScratchpadView(notes: sampleNotes(folder)))),
+            ("page-history", AnyView(HistoryView(history: history))),
+        ]
+        for (name, page) in pages {
+            render(page.padding(40).background(Brand.canvas), NSSize(width: 980, height: 1500), name, folder)
+        }
         render(InsightsView(insights: sampleInsights(folder)).padding(40).background(Brand.canvas),
                NSSize(width: 980, height: 1060), "insights", folder)
         render(MainWindowView(models: models, history: history, dictionary: sampleDictionary(folder),
@@ -105,6 +115,23 @@ enum Snapshots {
         }
         try? store.save(log)
         return InsightsModel(store: store)
+    }
+
+    private static func sampleSnippets(_ folder: URL) -> SnippetModel {
+        let store = SnippetStore(url: folder.appending(path: "snapshot-snippets-sample.json"))
+        try? store.save(SnippetLibrary([
+            Snippet(mode: .anywhere, name: "Signature", trigger: "my email signature", text: "Kind regards,\nJo Smith\nEsyAI"),
+            Snippet(mode: .whole, name: "Meeting link", trigger: "meeting link", text: "Join here: https://meet.example.com/jo"),
+            Snippet(mode: .anywhere, name: "Address", trigger: "my home address", text: "22 Home Road, Pune 411001"),
+        ]))
+        return SnippetModel(store: store)
+    }
+
+    private static func sampleNotes(_ folder: URL) -> NotesModel {
+        let store = NotesStore(url: folder.appending(path: "snapshot-notes.json"), legacy: folder.appending(path: "none.txt"))
+        try? store.save([Note(text: "Ideas for the launch\nShort video, a blog post, and a note to the beta group."),
+                         Note(text: "Call with Priya\nShe will send the figures on Friday.")])
+        return NotesModel(store: store)
     }
 }
 #endif

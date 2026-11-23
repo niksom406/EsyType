@@ -49,6 +49,8 @@ EsyType is a native macOS menu-bar app that turns speech into text in any app. Y
 
 18. **Phase 6, Windows parity (2026-11-22):** the main window follows the Windows "Next Generation" design — sidebar Dictation / EsyMeet / Insights, "Your words" (History, Dictionary, Snippets, Style, Scratchpad), Settings; a Dictation home with the week's figures and the last dictation; the pill shows "Typed into ‹app›" with Undo for 60 s; Insights from daily numbers; Scratchpad; onboarding "About you" and "Appearance". EsyMeet (live meeting transcription) is the next phase and is shown as "Soon".
 
+19. **Windows feature parity for personalisation (2026-11-23):** Dictionary words and corrections, optional hints, built-in product names, CSV/JSON import and export; Snippets with whole-dictation or anywhere triggers and {date}/{time}/{day}; History with "Not inserted", edit and export; per-app Style (Standard, Professional, Formal, Casual, Concise, Custom) after Clean; Scratchpad with multiple notes and .txt/.md export. Every page has a hero banner with the voice wave.
+
 **Not in MVP:** pause/resume, LLM refinement (Phase 8), fuzzy or AI corrections, streaming partials, Core ML encoder, media ducking, meetings, sync, teams.
 
 ## 5. Non-functional requirements

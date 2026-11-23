@@ -2,7 +2,11 @@ import Foundation
 
 /// A saved text: saying `trigger` types `text` (which may span several lines).
 public struct Snippet: Codable, Equatable, Hashable, Identifiable, Sendable {
+    /// `whole`: only when the whole dictation is the trigger. `anywhere`: wherever it's said (two words or more).
+    public enum Mode: String, Codable, CaseIterable, Sendable { case whole, anywhere }
+
     public var id: UUID
+    public var mode: Mode
     public var name: String
     public var trigger: String
     public var text: String
@@ -13,9 +17,11 @@ public struct Snippet: Codable, Equatable, Hashable, Identifiable, Sendable {
     public var created: Date
     public var modified: Date
 
-    public init(id: UUID = UUID(), name: String = "", trigger: String, text: String, category: String = "",
-                language: String = "", enabled: Bool = true, created: Date = Date(), modified: Date? = nil) {
+    public init(id: UUID = UUID(), mode: Mode = .anywhere, name: String = "", trigger: String, text: String,
+                category: String = "", language: String = "", enabled: Bool = true, created: Date = Date(),
+                modified: Date? = nil) {
         self.id = id
+        self.mode = mode
         self.name = name
         self.trigger = trigger
         self.text = text
@@ -27,11 +33,28 @@ public struct Snippet: Codable, Equatable, Hashable, Identifiable, Sendable {
     }
 
     public var key: String { PhraseMatcher.key(trigger) }
+
+    enum CodingKeys: String, CodingKey { case id, mode, name, trigger, text, category, language, enabled, created, modified }
+
+    // Snippets saved before modes existed expanded anywhere, and keep doing so.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        mode = try c.decodeIfPresent(Mode.self, forKey: .mode) ?? .anywhere
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? ""
+        trigger = try c.decode(String.self, forKey: .trigger)
+        text = try c.decode(String.self, forKey: .text)
+        category = try c.decodeIfPresent(String.self, forKey: .category) ?? ""
+        language = try c.decodeIfPresent(String.self, forKey: .language) ?? ""
+        enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
+        created = try c.decodeIfPresent(Date.self, forKey: .created) ?? Date()
+        modified = try c.decodeIfPresent(Date.self, forKey: .modified) ?? created
+    }
     var scope: String { "\(key)\u{1F}\(language)" }
 }
 
 public enum SnippetError: Error, Equatable, LocalizedError {
-    case emptyTrigger, emptyText, multilineTrigger, tooLong, badLanguage
+    case emptyTrigger, emptyText, multilineTrigger, tooLong, badLanguage, anywhereNeedsTwoWords
     case duplicateTrigger(usedBy: String)
 
     public var errorDescription: String? {
@@ -42,13 +65,14 @@ public enum SnippetError: Error, Equatable, LocalizedError {
         case .tooLong: "The trigger can be up to \(SnippetLibrary.maxTrigger) characters and the text up to \(SnippetLibrary.maxText)."
         case .badLanguage: "Use a language code such as en, hi or mr, or leave it empty for any language."
         case .duplicateTrigger(let name): "“\(name)” already uses that trigger phrase."
+        case .anywhereNeedsTwoWords: "A trigger that works anywhere needs two words or more, so ordinary words don’t set it off."
         }
     }
 }
 
 /// The user's snippets and every operation on them. No storage and no UI, so it can be tested alone.
 public struct SnippetLibrary: Equatable, Sendable {
-    public static let maxTrigger = 100, maxText = 5_000, maxName = 100
+    public static let maxTrigger = 100, maxText = 4_000, maxName = 100 // 4,000 as on Windows
     public internal(set) var snippets: [Snippet]
 
     public init(_ snippets: [Snippet] = []) { self.snippets = snippets }
@@ -115,6 +139,7 @@ public struct SnippetLibrary: Equatable, Sendable {
         guard snippet.trigger.count <= maxTrigger, snippet.text.count <= maxText,
               snippet.name.count <= maxName, snippet.category.count <= maxName else { throw SnippetError.tooLong }
         guard snippet.language.isEmpty || snippet.language.wholeMatch(of: /[a-z]{2,3}/) != nil else { throw SnippetError.badLanguage }
+        guard snippet.mode == .whole || snippet.key.split(separator: " ").count >= 2 else { throw SnippetError.anywhereNeedsTwoWords }
         if snippet.name.isEmpty { snippet.name = snippet.trigger }
         return snippet
     }
@@ -127,43 +152,83 @@ public struct SnippetEngine: Sendable {
 
     public init(_ library: SnippetLibrary) { self.library = library }
 
-    public func expand(_ text: String, language: String) -> (text: String, expansions: Int) {
+    /// `now` and `locale` fill in {date}, {time} and {day} when a snippet is used.
+    public func expand(_ text: String, language: String, now: Date = Date(), locale: Locale = .current) -> (text: String, expansions: Int) {
         let ambiguous = library.ambiguous
+        let usable = library.snippets.filter { $0.enabled && !ambiguous.contains($0.id) && ($0.language.isEmpty || $0.language == language) }
+        // Whole dictation first: the dictation, without its closing punctuation, is just the trigger.
+        let spoken = PhraseMatcher.key(text.trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters)))
+        let whole = usable.filter { $0.mode == .whole && $0.key == spoken }
+        if let match = whole.first(where: { !$0.language.isEmpty }) ?? whole.first {
+            return (Self.fill(match.text, now: now, locale: locale), 1)
+        }
         var chosen: [String: Snippet] = [:]
-        for snippet in library.snippets where snippet.enabled && !ambiguous.contains(snippet.id)
-            && (snippet.language.isEmpty || snippet.language == language) {
+        for snippet in usable where snippet.mode == .anywhere {
             if let current = chosen[snippet.key], !current.language.isEmpty || snippet.language.isEmpty { continue }
             chosen[snippet.key] = snippet // a snippet for this language overrides an "any language" one
         }
-        let rules = library.snippets.filter { chosen[$0.key]?.id == $0.id }.map { ($0.key, $0.text) }
+        let rules = library.snippets.filter { chosen[$0.key]?.id == $0.id }.map { ($0.key, Self.fill($0.text, now: now, locale: locale)) }
         let result = PhraseMatcher.replace(in: text, rules: rules)
         return (result.text, result.count)
+    }
+
+    /// {date} → 23 November 2026, {time} → 14:05, {day} → Monday, in the user's own format.
+    public static func fill(_ text: String, now: Date, locale: Locale = .current) -> String {
+        guard text.contains("{") else { return text }
+        return text
+            .replacingOccurrences(of: "{date}", with: now.formatted(Date.FormatStyle(date: .long, time: .omitted, locale: locale)))
+            .replacingOccurrences(of: "{time}", with: now.formatted(Date.FormatStyle(date: .omitted, time: .shortened, locale: locale)))
+            .replacingOccurrences(of: "{day}", with: now.formatted(Date.FormatStyle(locale: locale).weekday(.wide)))
     }
 }
 
 // MARK: CSV and storage
 
 public enum SnippetCSV {
-    public static let columns = ["name", "trigger_phrase", "replacement_text", "category", "language", "enabled",
+    public static let columns = ["name", "trigger_phrase", "replacement_text", "mode", "category", "language", "enabled",
                                  "created_at", "modified_at"]
+    /// The Windows app's names (trigger, text, mode) and the JSON keys.
+    static let aliases = ["trigger": "trigger_phrase", "text": "replacement_text"]
     public typealias Row = CSVRow<Snippet>
 
     public static func parse(_ data: Data, now: Date = Date()) throws(CSVFile.FileError) -> [Row] {
-        try CSVFile.parse(data, required: ["trigger_phrase", "replacement_text"]) { value in
+        try CSVFile.parse(data, required: ["trigger_phrase", "replacement_text"], aliases: aliases) { snippet($0, now: now) }
+    }
+
+    public static func parseJSON(_ data: Data, now: Date = Date()) throws(CSVFile.FileError) -> [Row] {
+        try CSVFile.parseJSON(data, required: ["trigger_phrase", "replacement_text"], aliases: aliases) { snippet($0, now: now) }
+    }
+
+    static func snippet(_ value: (String) -> String, now: Date) -> Result<Snippet, RowError> {
+        do {
             guard let enabled = CSVFile.bool(value("enabled")) else { return .failure(RowError(reason: "“enabled” must be true or false.")) }
+            let mode: Snippet.Mode
+            switch value("mode").trimmingCharacters(in: .whitespaces).lowercased() {
+            case "", "anywhere": mode = .anywhere
+            case "whole", "whole dictation": mode = .whole
+            default: return .failure(RowError(reason: "“mode” must be whole or anywhere."))
+            }
             let created = date(value("created_at")) ?? now
-            let snippet = Snippet(name: value("name"), trigger: value("trigger_phrase"), text: value("replacement_text"),
+            let snippet = Snippet(mode: mode, name: value("name"), trigger: value("trigger_phrase"), text: value("replacement_text"),
                                   category: value("category"), language: value("language"), enabled: enabled,
                                   created: created, modified: date(value("modified_at")) ?? created)
-            do { return .success(try SnippetLibrary.validated(snippet)) } catch {
-                return .failure(RowError(reason: error.localizedDescription))
-            }
+            return .success(try SnippetLibrary.validated(snippet))
+        } catch {
+            return .failure(RowError(reason: error.localizedDescription))
         }
     }
 
     public static func export(_ snippets: [Snippet]) -> Data {
         CSVFile.export(header: columns, rows: snippets.map {
-            [$0.name, $0.trigger, $0.text, $0.category, $0.language, $0.enabled ? "true" : "false", stamp($0.created), stamp($0.modified)]
+            [$0.name, $0.trigger, $0.text, $0.mode.rawValue, $0.category, $0.language, $0.enabled ? "true" : "false",
+             stamp($0.created), stamp($0.modified)]
+        })
+    }
+
+    public static func exportJSON(_ snippets: [Snippet]) -> Data {
+        CSVFile.exportJSON(snippets.map {
+            ["name": $0.name, "trigger": $0.trigger, "text": $0.text, "mode": $0.mode.rawValue, "category": $0.category,
+             "language": $0.language, "enabled": $0.enabled, "created_at": stamp($0.created), "modified_at": stamp($0.modified)]
         })
     }
 
@@ -180,7 +245,7 @@ extension SnippetLibrary {
     /// Same trigger + language: identical → skipped, different → update (only if the user ticks it).
     public func plan(_ rows: [SnippetCSV.Row]) -> ImportPlan<Snippet> {
         ImportPlan(rows: rows, existing: snippets, scope: \.scope, same: {
-            $0.name == $1.name && $0.text == $1.text && $0.category == $1.category && $0.enabled == $1.enabled
+            $0.name == $1.name && $0.text == $1.text && $0.category == $1.category && $0.enabled == $1.enabled && $0.mode == $1.mode
         }, keeping: { existing, new in
             var updated = new
             updated.id = existing.id

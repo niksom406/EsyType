@@ -51,6 +51,7 @@ struct MainWindowView: View {
     let openSettings: () -> Void
     @AppStorage("mainWindowSection") private var remembered = Destination.dictation.rawValue
     @State private var selection: Destination?
+    @State private var notes = NotesModel()
 
     var body: some View {
         HStack(spacing: 0) {
@@ -65,14 +66,10 @@ struct MainWindowView: View {
                     case .meet: EsyMeetPreview()
                     case .insights: InsightsView(insights: insights)
                     case .history: HistoryView(history: history)
-                    case .dictionary:
-                        VStack(alignment: .leading, spacing: 4) {
-                            PageTitle("Dictionary")
-                            DictionaryTab(model: dictionary).padding(.horizontal, -20)
-                        }
+                    case .dictionary: DictionaryPage(model: dictionary)
                     case .snippets: SnippetsView(model: snippets)
-                    case .style: TextCleanupView()
-                    case .scratchpad: ScratchpadView()
+                    case .style: StylePage(history: history)
+                    case .scratchpad: ScratchpadView(notes: notes)
                     }
                 }
                 .frame(maxWidth: 1240, alignment: .leading) // grows with the window, readable on very wide screens
@@ -238,44 +235,12 @@ private struct DictationHome: View {
             + " It all stays on this Mac."
     }
 
-    /// Always the dark brand card, like a poster: serif headline, a looping voice waveform, one action.
+    /// The shared page banner (no ✕ here: this is home).
     private var hero: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 12) {
-                (Text("Your voice, typed ") + Text("anywhere").italic() + Text("."))
-                    .font(.esyDisplay(34)).tracking(-0.6).fixedSize(horizontal: false, vertical: true)
-                Text(shortcutLine).font(.esy(14)).foregroundStyle(.white.opacity(0.75))
-                    .frame(maxWidth: 330, alignment: .leading).fixedSize(horizontal: false, vertical: true)
-                Button { open(.style) } label: {
-                    Text("Set your style").font(.esy(14, .semibold))
-                        .padding(.horizontal, 18).frame(height: 40)
-                        .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 10))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.18)))
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 8)
-            }
-            .frame(minWidth: 250, idealWidth: 280, maxWidth: 320, alignment: .leading)
-            .layoutPriority(1)
-            SpeakingWave(bars: 26, barWidth: 4, spacing: 5, height: 150)
-                .frame(minWidth: 130, idealWidth: 160, maxWidth: .infinity) // shrinks first on narrow windows
-                .clipped()
-                .mask(LinearGradient(colors: [.clear, .black, .black, .clear], startPoint: .leading, endPoint: .trailing))
+        PageHero("dictation", headline: Text("Your voice, typed ") + Text("anywhere").italic() + Text("."),
+                 message: shortcutLine, dismissible: false) {
+            HeroButton("Set your style") { open(.style) }
         }
-        .padding(34)
-        .background {
-            ZStack {
-                LinearGradient(colors: [Color(hex: 0x050507), Color(hex: 0x14102A), Color(hex: 0x2A1A3F)],
-                               startPoint: .leading, endPoint: .trailing)
-                RadialGradient(colors: [Color(hex: 0xDFA164).opacity(0.26), .clear], center: .init(x: 0.8, y: 0.35),
-                               startRadius: 0, endRadius: 280)
-            }
-        }
-        .foregroundStyle(.white)
-        .frame(height: 250)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.08)))
-        .environment(\.colorScheme, .dark)
     }
 
     /// Total words, speed and streak; then your words, linking to Dictionary and Snippets.

@@ -6,8 +6,15 @@ public struct DictionaryEngine: Sendable {
     /// Hints are a nudge, never a guarantee. Kept short: Whisper's prompt is limited (about 224 tokens).
     public static let maxHints = 20, maxHintCharacters = 200
     private let dictionary: PersonalDictionary
+    private let builtIns: Bool
+    private let hintsOn: Bool
 
-    public init(_ dictionary: PersonalDictionary) { self.dictionary = dictionary }
+    /// `builtIns`: also correct the common product names (`BuiltInNames`); `hints`: pass words to Whisper.
+    public init(_ dictionary: PersonalDictionary, builtIns: Bool = false, hints: Bool = true) {
+        self.dictionary = dictionary
+        self.builtIns = builtIns
+        hintsOn = hints
+    }
 
     /// The rules for one detected language: enabled, not conflict losers, language-specific over "any language",
     /// in dictionary order (PhraseMatcher puts longer phrases first).
@@ -24,7 +31,13 @@ public struct DictionaryEngine: Sendable {
 
     /// Returns the corrected text and how many replacements were made.
     public func apply(to text: String, language: String) -> (text: String, replacements: Int) {
-        let result = PhraseMatcher.replace(in: text, rules: rules(for: language).map { ($0.key, $0.replacement) })
+        let own = rules(for: language)
+        var pairs = own.flatMap { entry in [(entry.key, entry.replacement)] + (entry.splitKey.map { [($0, entry.replacement)] } ?? []) }
+        if builtIns { // your own entries always win
+            let taken = Set(pairs.map(\.0))
+            pairs += BuiltInNames.rules.filter { !taken.contains($0.key) }.map { ($0.key, $0.replacement) }
+        }
+        let result = PhraseMatcher.replace(in: text, rules: pairs)
         return (result.text, result.count)
     }
 
@@ -45,7 +58,7 @@ public struct DictionaryEngine: Sendable {
     /// The whole Whisper prompt: the built-in sentence, then the hints as one punctuated sentence
     /// (Whisper copies the prompt's style, and bare words cost full stops, see TextCleanup.whisperPrompt).
     public func prompt(language: String?) -> String {
-        let hints = hints(language: language)
+        let hints = hintsOn ? hints(language: language) : []
         return hints.isEmpty ? TextCleanup.whisperPrompt : TextCleanup.whisperPrompt + " " + hints.joined(separator: ", ") + "."
     }
 }

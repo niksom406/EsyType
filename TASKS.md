@@ -156,3 +156,10 @@ A task is marked done only with evidence (test output, measurement, or screensho
 
 - [x] Sidebar, Dictation home, pill "Typed into … · Undo", Insights, Style, Scratchpad, About you + Appearance onboarding, Models in Settings.
 - [ ] **EsyMeet** (next phase, needs approval): meeting prompt, system-audio capture ("Others"), live transcript, meeting history, Copy for AI.
+
+## Windows parity: Dictionary, Snippets, History, Style, Scratchpad · done 2026-11-23 (evidence: `Documentation/PARITY_PAGES_TEST_REPORT.md`)
+
+- [x] Core: Style engine + per-app rules; dictionary words, built-in names, hint switch; snippet modes and placeholders; JSON/CSV parity; history status/edit/export; notes. Evidence: 122 unit tests.
+- [x] Pages redesigned with hero banners and the voice wave. Evidence: renders in both themes; every page opened in the real app.
+- [x] Real dictation: Professional style for TextEdit typed "Yes, I'm going to send it tomorrow…".
+- [ ] **Your checks:** import a Windows CSV/JSON; Downloads exports; edit a history entry; snippets with {date}.

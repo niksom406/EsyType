@@ -23,15 +23,34 @@ final class HistoryModel {
 
     private static var days: Int { UserDefaults.standard.integer(forKey: Pref.historyDays) }
 
-    func save(_ text: String, language: String, durationMs: Int, modelID: String, appBundleID: String?) {
-        guard Self.days >= 0, let store else { return }
+    /// Saved as "not inserted" first, before pasting, so nothing is lost; `markInserted` follows a good paste.
+    @discardableResult
+    func save(_ text: String, language: String, durationMs: Int, modelID: String, appBundleID: String?) -> Task<Int64?, Never>? {
+        guard Self.days >= 0, let store else { return nil }
         let app = UserDefaults.standard.bool(forKey: Pref.saveSourceApp) ? appBundleID : nil
-        Task {
+        return Task {
+            defer { reload() }
             do {
-                try await store.add(text: text, language: language, durationMs: durationMs, modelID: modelID, appBundleID: app)
+                return try await store.add(text: text, language: language, durationMs: durationMs, modelID: modelID,
+                                           appBundleID: app, inserted: false).id
             } catch {
                 self.error = "The last dictation couldn’t be saved to history."
+                return nil
             }
+        }
+    }
+
+    func markInserted(_ saved: Task<Int64?, Never>?) {
+        Task {
+            guard let id = await saved?.value else { return }
+            try? await store?.setInserted(id: id, true)
+            reload()
+        }
+    }
+
+    func update(_ entry: HistoryEntry, text: String) {
+        Task {
+            try? await store?.update(id: entry.id, text: text)
             reload()
         }
     }

@@ -18,6 +18,8 @@ enum Pref {
     static let toggleShortcut = "toggleShortcut"
     static let doubleTap = "doubleTapHandsFree"
     static let typingWPM = "insightsTypingWPM"
+    static let dictionaryHints = "dictionaryHints" // off by default, as on Windows (slower, sometimes misplaced words)
+    static let builtInNames = "builtInProductNames"
     static let userName = "userName" // About you: labels your lines in meeting transcripts
     static let meetingName = "meetingName"
     static let microphoneUID = "microphoneUID" // "" = system default
@@ -41,7 +43,7 @@ enum Pref {
             cleanRepeatedWords: true, cleanRepeatedPhrases: true, cleanPunctuation: true, cleanCapitalisation: true,
             historyDays: 30, saveSourceApp: true,
             holdKey: HoldKey.rightOption.rawValue, toggleShortcut: ToggleShortcut.controlOptionSpace.rawValue,
-            doubleTap: true, typingWPM: 40.0, userName: "", meetingName: "", microphoneUID: "", startSound: true, stopSound: true, soundVolume: 0.5,
+            doubleTap: true, typingWPM: 40.0, dictionaryHints: false, builtInNames: true, userName: "", meetingName: "", microphoneUID: "", startSound: true, stopSound: true, soundVolume: 0.5,
             noSpeechWarning: true, silenceSeconds: 5, maxRecordingSeconds: 20 * 60,
         ])
     }

@@ -5,11 +5,12 @@ public enum CSVFile {
     public static let maxBytes = 2_000_000, maxRows = 10_000
 
     public enum FileError: Error, Equatable, LocalizedError {
-        case notUTF8, empty, tooLarge, unterminatedQuote(line: Int), missingColumns([String])
+        case notUTF8, notJSON, empty, tooLarge, unterminatedQuote(line: Int), missingColumns([String])
 
         public var errorDescription: String? {
             switch self {
             case .notUTF8: "The file isn’t UTF-8 text. Save it as “CSV UTF-8” and try again."
+            case .notJSON: "The file isn’t a JSON list of entries."
             case .empty: "The file is empty."
             case .tooLarge: "The file is too large (limit \(CSVFile.maxBytes / 1_000_000) MB or \(CSVFile.maxRows) rows)."
             case .unterminatedQuote(let line): "A quoted value starting on line \(line) is never closed."
@@ -19,14 +20,18 @@ public enum CSVFile {
     }
 
     /// Reads a file with a header line. `make` turns one row (by column name) into an item, or a reason it's rejected.
-    public static func parse<Item>(_ data: Data, required: [String],
+    /// `aliases` maps other column names to ours (e.g. the Windows app's "term" → "recognised_text").
+    public static func parse<Item>(_ data: Data, required: [String], aliases: [String: String] = [:],
                                    make: (_ value: (String) -> String) -> Result<Item, RowError>) throws(FileError) -> [CSVRow<Item>] {
         guard data.count <= maxBytes else { throw .tooLarge }
         guard var text = String(data: data, encoding: .utf8) else { throw .notUTF8 }
         if text.hasPrefix("\u{FEFF}") { text.removeFirst() } // Excel's byte-order mark
         let records = try records(text)
         guard let header = records.first?.1 else { throw .empty }
-        let names = header.map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+        let names = header.map { name in
+            let clean = name.trimmingCharacters(in: .whitespaces).lowercased()
+            return aliases[clean] ?? clean
+        }
         let missing = required.filter { !names.contains($0) }
         guard missing.isEmpty else { throw .missingColumns(missing) }
         guard records.count - 1 <= maxRows else { throw .tooLarge }
@@ -38,6 +43,36 @@ public enum CSVFile {
             }
             return CSVRow(line: line, result: make { name in index[name].map { unprotect(fields[$0]) } ?? "" })
         }
+    }
+
+    /// A JSON array of objects, one per item, read with the same column names (and aliases) as CSV.
+    /// Numbers and true/false become text, so the same `make` closure checks both formats.
+    public static func parseJSON<Item>(_ data: Data, required: [String], aliases: [String: String] = [:],
+                                       make: (_ value: (String) -> String) -> Result<Item, RowError>) throws(FileError) -> [CSVRow<Item>] {
+        guard data.count <= maxBytes else { throw .tooLarge }
+        guard let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { throw .notJSON }
+        guard array.count <= maxRows else { throw .tooLarge }
+        return array.enumerated().map { index, object in
+            var fields: [String: String] = [:]
+            for (key, value) in object {
+                let name = aliases[key.lowercased()] ?? key.lowercased()
+                fields[name] = switch value {
+                case let bool as Bool: bool ? "true" : "false"
+                case let number as NSNumber: number.stringValue
+                case let text as String: text
+                default: ""
+                }
+            }
+            if let missing = required.first(where: { fields[$0] == nil }) {
+                return CSVRow(line: index + 1, result: .failure(RowError(reason: "Item \(index + 1) has no “\(missing)”.")))
+            }
+            return CSVRow(line: index + 1, result: make { fields[$0] ?? "" })
+        }
+    }
+
+    /// Pretty-printed JSON array of objects with these keys, for export.
+    public static func exportJSON(_ rows: [[String: Any]]) -> Data {
+        (try? JSONSerialization.data(withJSONObject: rows, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])) ?? Data("[]".utf8)
     }
 
     /// UTF-8 with a byte-order mark (so Excel reads Hindi and Marathi correctly), CRLF line ends, every value quoted.
