@@ -5,6 +5,7 @@ All notable changes to EsyType are documented here. Format: Keep a Changelog. Ve
 ## [Unreleased]
 
 ### Added
+- 2026-11-23, Insights: animated "Words per day" chart (7 / 30 / 90 days, average line); figures count up, the heatmap fades in, week and category bars grow when the page opens (off with Reduce Motion).
 - 2026-11-22, Phase 6: Insights redesigned as in the Windows design — four figure tiles, an 18-week activity heatmap with streak / busiest day / daily average, this week by day, and app kinds; both themes.
 - 2026-11-22, Phase 6: new Dictation home ("Welcome back", animated waveform hero, total words / wpm / day streak, recent dictations by day); frosted-glass window and cards; bigger, freely resizable window; EsyType now always shows in the Dock while running.
 - 2026-11-22, Phase 6 design: the look now matches the Windows design in light and dark — Georgia italic headings, system text font, purple accent, Windows-style sidebar and cards, glass pill that follows the theme. Appearance defaults to Follow Mac, with Dark and Light in Settings ▸ General.

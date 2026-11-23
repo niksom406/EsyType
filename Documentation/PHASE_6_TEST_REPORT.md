@@ -65,6 +65,12 @@ As in the Windows design: four tiles (big semibold figure, small-caps label, not
 | Real page with your numbers | PASS | Accessibility: 64 words since 22 Nov, 106 wpm, Activity 1 day / busiest 64 words, This week Sunday 64, Documents 73 % |
 | Words per day, heat levels, streak | PASS (Simulated) | `wordsPerDayAndHeatLevels`, `dayStreakCountsConsecutiveDaysUpToToday` |
 
+## Animated graphs (fourth follow-up, 2026-11-23)
+
+- **Words per day** chart (Swift Charts, built into macOS): smooth line with a purple fill, dashed average, 7 / 30 / 90-day switch that animates. Monotone smoothing, so the line never goes above or below a real day. Fixed height scale, so the line rises from the bottom.
+- **On opening Insights:** figures count up, the chart rises, heatmap squares fade in column by column, week bars grow one after another, category bars fill. With Reduce Motion everything appears at once.
+- **Checked:** renders caught mid-animation (0.4 s) and finished (2.2 s) in both themes; real page through Accessibility (chart label "64 words in 30 days", switch → 7 days). The motion itself was not watched on screen.
+
 ## Not tested and limitations
 
 - The onboarding steps weren't clicked in the real app (your onboarding is already done). They were checked by render.

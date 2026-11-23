@@ -1,3 +1,4 @@
+import Charts
 import EsyTypeCore
 import SwiftUI
 
@@ -7,6 +8,10 @@ struct InsightsView: View {
     let insights: InsightsModel
     @AppStorage(Pref.typingWPM) private var typingWPM = 40.0
     @State private var showWorking = false
+    /// Drives the entrance animations; set when the page opens. Reduce Motion shows everything at once.
+    @State private var appeared = false
+    @State private var range = 30
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let weeks = 18
     private var calendar: Calendar { var c = Calendar.current; c.firstWeekday = 2; return c } // weeks start on Monday
@@ -27,6 +32,7 @@ struct InsightsView: View {
                     GridRow { views[2]; views[3] }
                 }
             }
+            wordsChart
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 12) {
                     activity.frame(minWidth: 420)
@@ -43,6 +49,82 @@ struct InsightsView: View {
                     .font(.esy(12)).fixedSize()
             }
         }
+        .onAppear {
+            guard !reduceMotion else { appeared = true; return }
+            appeared = false
+            DispatchQueue.main.async { appeared = true } // after the first frame, so every part animates in
+        }
+    }
+
+    /// An entrance for each part, offset by `delay` so the page builds up in order.
+    private func entrance(_ delay: Double, duration: Double = 0.7) -> Animation? {
+        reduceMotion ? nil : .spring(response: duration, dampingFraction: 0.86).delay(delay)
+    }
+
+    // MARK: Words per day chart
+
+    private var wordsChart: some View {
+        let today = Calendar.current.startOfDay(for: Date())
+        let days = insights.log.wordsPerDay(count: range, endingOn: today)
+        let total = days.map(\.words).reduce(0, +)
+        let active = days.filter { $0.words > 0 }.count
+        let average = active > 0 ? Double(total) / Double(active) : 0
+        let top = max(10, Double(days.map(\.words).max() ?? 0) * 1.15)
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Words per day").font(.esy(14, .semibold))
+                Text("\(total.formatted()) words in \(range) days").font(.esy(12)).foregroundStyle(Brand.inkTertiary)
+                Spacer()
+                Picker("Range", selection: $range.animation(reduceMotion ? nil : .easeInOut(duration: 0.5))) {
+                    Text("7 days").tag(7)
+                    Text("30 days").tag(30)
+                    Text("90 days").tag(90)
+                }
+                .pickerStyle(.segmented).labelsHidden().fixedSize()
+            }
+            Chart {
+                ForEach(days, id: \.date) { day in
+                    AreaMark(x: .value("Day", day.date, unit: .day), y: .value("Words", appeared ? day.words : 0))
+                        .interpolationMethod(.monotone) // smooth, but never above or below a real day
+                        .foregroundStyle(LinearGradient(colors: [Brand.accent.opacity(0.35), Brand.accent.opacity(0.02)],
+                                                        startPoint: .top, endPoint: .bottom))
+                    LineMark(x: .value("Day", day.date, unit: .day), y: .value("Words", appeared ? day.words : 0))
+                        .interpolationMethod(.monotone) // smooth, but never above or below a real day
+                        .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                        .foregroundStyle(Brand.accentInk)
+                    if range == 7, day.words > 0 {
+                        PointMark(x: .value("Day", day.date, unit: .day), y: .value("Words", appeared ? day.words : 0))
+                            .foregroundStyle(Brand.accentInk).symbolSize(36)
+                    }
+                }
+                if average > 0 {
+                    RuleMark(y: .value("Average", appeared ? average : 0))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                        .foregroundStyle(Brand.inkTertiary)
+                        .annotation(position: .top, alignment: .trailing) {
+                            Text("avg \(Int(average.rounded()))").font(.esy(10.5)).foregroundStyle(Brand.inkTertiary)
+                        }
+                }
+            }
+            .chartYScale(domain: 0...top) // fixed, so the line rises instead of the axis rescaling
+            .chartXAxis {
+                AxisMarks(values: .stride(by: .day, count: range == 7 ? 1 : range == 30 ? 7 : 21)) { _ in
+                    AxisValueLabel(format: range == 7 ? .dateTime.weekday(.abbreviated) : .dateTime.day().month(.abbreviated))
+                        .font(.esy(10.5)).foregroundStyle(Brand.inkTertiary)
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { _ in
+                    AxisGridLine().foregroundStyle(Brand.hairline)
+                    AxisValueLabel().font(.esy(10.5)).foregroundStyle(Brand.inkTertiary)
+                }
+            }
+            .frame(height: 180)
+            .animation(entrance(0.15, duration: 0.9), value: appeared)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Words per day for the last \(range) days: \(total) words, \(active) active \(active == 1 ? "day" : "days"), average \(Int(average.rounded())) on active days")
+        }
+        .esyGlassCard()
     }
 
     // MARK: Tiles
@@ -53,21 +135,26 @@ struct InsightsView: View {
 
     private func tileViews(_ all: InsightsSummary) -> [AnyView] {
         [
-            AnyView(tile(all.words.formatted(), "Words dictated", all.since.map { "since \(Self.day($0))" } ?? "none yet")),
-            AnyView(tile("\(all.wordsPerMinute)", "Words per minute", "speaking, not typing")),
-            AnyView(tile(Self.duration(all.secondsSaved(typingWPM: typingWPM)), "Time saved", "at \(Int(typingWPM)) wpm typing") {
+            AnyView(tile(Double(all.words), { Int($0).formatted() }, "Words dictated", all.since.map { "since \(Self.day($0))" } ?? "none yet")),
+            AnyView(tile(Double(all.wordsPerMinute), { "\(Int($0))" }, "Words per minute", "speaking, not typing")),
+            AnyView(tile(all.secondsSaved(typingWPM: typingWPM), { Self.duration($0) }, "Time saved", "at \(Int(typingWPM)) wpm typing") {
                 Button("How?") { showWorking.toggle() }.buttonStyle(.plain).font(.esy(12, .semibold)).foregroundStyle(Brand.accentInk)
                     .popover(isPresented: $showWorking) { working(all).padding(16).frame(width: 300) }
             }),
-            AnyView(tile("—", "Meetings transcribed", "comes with EsyMeet")),
+            AnyView(tile(nil, { _ in "—" }, "Meetings transcribed", "comes with EsyMeet")),
         ]
     }
 
-    private func tile(_ value: String, _ label: String, _ note: String) -> some View { tile(value, label, note) { EmptyView() } }
+    private func tile(_ value: Double?, _ format: @escaping (Double) -> String, _ label: String, _ note: String) -> some View {
+        tile(value, format, label, note) { EmptyView() }
+    }
 
-    private func tile(_ value: String, _ label: String, _ note: String, @ViewBuilder extra: () -> some View) -> some View {
+    private func tile(_ value: Double?, _ format: @escaping (Double) -> String, _ label: String, _ note: String,
+                      @ViewBuilder extra: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(value).font(.esy(28, .semibold)).monospacedDigit().tracking(-0.3).lineLimit(1).minimumScaleFactor(0.7)
+            CountUp(target: value ?? 0, progress: appeared ? 1 : 0, format: format)
+                .animation(entrance(0, duration: 1.1), value: appeared)
+                .font(.esy(28, .semibold)).monospacedDigit().tracking(-0.3).lineLimit(1).minimumScaleFactor(0.7)
             Text(label.uppercased()).font(.esy(10.5, .semibold)).tracking(1.1).foregroundStyle(Brand.inkTertiary)
             HStack(spacing: 6) { Text(note).font(.esy(12)).foregroundStyle(Brand.inkTertiary); extra() }
         }
@@ -112,6 +199,9 @@ struct InsightsView: View {
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(Brand.heat[InsightsLog.heatLevel(words: words, busiest: busiest)])
                                     .frame(height: 14)
+                                    .opacity(appeared ? 1 : 0)
+                                    .scaleEffect(appeared ? 1 : 0.3)
+                                    .animation(entrance(0.25 + Double(week) * 0.025 + Double(row) * 0.012, duration: 0.45), value: appeared)
                                     .help("\(date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))): \(words.formatted()) words")
                             }
                         }
@@ -177,7 +267,8 @@ struct InsightsView: View {
                             .overlay(RoundedRectangle(cornerRadius: 5)
                                 .stroke(words < 0 ? Brand.hairline : Brand.accent.opacity(isToday ? 0 : 0.4),
                                         style: StrokeStyle(lineWidth: 1, dash: words < 0 ? [3] : [])))
-                            .frame(height: words <= 0 ? 6 : max(8, 72 * CGFloat(words) / CGFloat(busiest)))
+                            .frame(height: words <= 0 ? 6 : max(8, 72 * CGFloat(words) / CGFloat(busiest) * (appeared ? 1 : 0.05)))
+                            .animation(entrance(0.35 + Double(day) * 0.06), value: appeared)
                             .help(words < 0 ? "" : "\(words.formatted()) words")
                         Text(["M", "T", "W", "T", "F", "S", "S"][day]).font(.esy(10.5, isToday ? .semibold : .regular))
                             .foregroundStyle(isToday ? Brand.ink : Brand.inkTertiary)
@@ -200,7 +291,8 @@ struct InsightsView: View {
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
                                 Capsule().fill(Brand.surfaceRaised)
-                                Capsule().fill(Brand.accent).frame(width: max(6, geo.size.width * share))
+                                Capsule().fill(Brand.accent).frame(width: max(6, geo.size.width * share * (appeared ? 1 : 0)))
+                                    .animation(entrance(0.5, duration: 0.9), value: appeared)
                             }
                         }
                         .frame(height: 8)
@@ -239,4 +331,18 @@ struct InsightsView: View {
         parser.dateFormat = "yyyy-MM-dd"
         return parser.date(from: key).map { $0.formatted(.dateTime.day().month(.abbreviated)) } ?? key
     }
+}
+
+/// A number that counts up from 0 to `target` as `progress` animates from 0 to 1.
+private struct CountUp: View, @preconcurrency Animatable {
+    var target: Double
+    var progress: Double
+    let format: (Double) -> String
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    var body: some View { Text(format(target * progress)) }
 }

@@ -40,7 +40,7 @@ enum Snapshots {
         RunLoop.main.run(until: .now + 0.5) // let the first load finish
         render(HistoryView(history: history).padding(40), NSSize(width: 720, height: 560), "history", folder)
         render(InsightsView(insights: sampleInsights(folder)).padding(40).background(Brand.canvas),
-               NSSize(width: 980, height: 760), "insights", folder)
+               NSSize(width: 980, height: 1060), "insights", folder)
         render(MainWindowView(models: models, history: history, dictionary: sampleDictionary(folder),
                               snippets: SnippetModel(store: SnippetStore(url: folder.appending(path: "snapshot-snippets.json"))),
                               insights: InsightsModel(store: InsightsStore(url: folder.appending(path: "snapshot-insights.json"))),
@@ -79,7 +79,8 @@ enum Snapshots {
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: .borderless,
                               backing: .buffered, defer: false)
         window.contentView = view
-        RunLoop.current.run(until: Date().addingTimeInterval(0.4)) // let SwiftUI lay out and start its tasks
+        // Let SwiftUI lay out and start its tasks; ESYTYPE_SNAPSHOT_WAIT lets animations finish before capture.
+        RunLoop.current.run(until: Date().addingTimeInterval(Double(ProcessInfo.processInfo.environment["ESYTYPE_SNAPSHOT_WAIT"] ?? "") ?? 0.4))
         guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("\(name).png"))
